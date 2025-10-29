@@ -1,15 +1,13 @@
 import { useState, useRef, useEffect } from 'react';
 import { useSettings } from '../contexts/SettingsContext';
 import { useTheme } from '../contexts/ThemeContext';
-import { SearchResult, ContextSettings } from '../types';
 import { 
   getDefaultContextSettings, 
-  scoreBlockRelevance, 
   filterBlocks, 
   shouldExcludePage, 
   isJournalInRange,
   formatBlocksAsMarkdown
-} from '../utils/contextFiltering';
+} from '@electron/utils/contextFiltering';
 import MessageList from './MessageList';
 import MessageInput from './MessageInput';
 import Header from './Header';
@@ -379,10 +377,10 @@ export default function ChatInterface({ onOpenSidebar }: ChatInterfaceProps) {
             return;
           }
 
-          // Policy: if no LogSeq context, do not update existing files; only allow creating pages with explicit approval.
+          // Policy: if no Logseq context, do not update existing files; only allow creating pages with explicit approval.
           if (noContextWarning) {
             if (action.type === 'create_page' && action.pageName) {
-              const ok = window.confirm(`No LogSeq context detected. Create new page "${action.pageName}"?`);
+              const ok = window.confirm(`No Logseq context detected. Create new page "${action.pageName}"?`);
               if (!ok) {
                 console.log('[ChatInterface] User declined create_page without context');
                 return;
@@ -391,7 +389,7 @@ export default function ChatInterface({ onOpenSidebar }: ChatInterfaceProps) {
               console.log('[ChatInterface] Blocking file update without context. Action:', action.type);
               setMessages((prev) => [
                 ...prev,
-                { role: 'assistant', content: 'ℹ️ No LogSeq context available — not updating existing files. Please reference a page/journal or rebuild the index. You may create a new page instead.' }
+                { role: 'assistant', content: 'ℹ️ No Logseq context available — not updating existing files. Please reference a page/journal or rebuild the index. You may create a new page instead.' }
               ]);
               return;
             }

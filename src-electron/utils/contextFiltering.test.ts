@@ -5,7 +5,7 @@ import {
   shouldExcludePage, 
   isJournalInRange,
   getDefaultContextSettings
-} from '../../src/utils/contextFiltering';
+} from './contextFiltering';
 
 describe('Context Filtering Utilities', () => {
   describe('scoreBlockRelevance', () => {

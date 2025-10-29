@@ -1,6 +1,6 @@
 ## ADDED Requirements
 ### Requirement: Journal and Page Content Creation
-The system SHALL create or append journal entries and pages with correct LogSeq formats, including frontmatter, properties, tags, indentation, and block IDs where applicable.
+The system SHALL create or append journal entries and pages with correct Logseq formats, including frontmatter, properties, tags, indentation, and block IDs where applicable.
 
 #### Scenario: Create daily journal entry
 - **WHEN** a user triggers journal creation

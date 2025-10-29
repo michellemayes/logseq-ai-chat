@@ -25,7 +25,7 @@ export default function SettingsPanel({ settings, onChange, onSave }: SettingsPa
     onChange({ ...settings, [key]: value });
   };
 
-  const handleContextChange = (key: keyof ContextSettings, value: number | string | string[]) => {
+  const handleContextChange = (key: keyof ContextSettings, value: number | string | string[] | undefined) => {
     const contextSettings: ContextSettings = {
       ...settings.contextSettings,
       [key]: value,
@@ -56,7 +56,7 @@ export default function SettingsPanel({ settings, onChange, onSave }: SettingsPa
   return (
     <div className="settings-panel">
       <div className="settings-section">
-        <label className="settings-label">LogSeq Graph Path</label>
+        <label className="settings-label">Logseq Graph Path</label>
         <div className="settings-input-group">
           <input
             type="text"
@@ -238,7 +238,7 @@ export default function SettingsPanel({ settings, onChange, onSave }: SettingsPa
                 console.error('Failed to rebuild index:', e);
               }
             }}
-            title="Rescan your LogSeq folder and rebuild the in-memory index"
+            title="Rescan your Logseq folder and rebuild the in-memory index"
           >
             Rebuild Index
           </button>

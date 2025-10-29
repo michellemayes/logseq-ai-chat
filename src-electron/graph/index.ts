@@ -1,5 +1,5 @@
 import { readMarkdownFile, parseMarkdown } from '../filesystem/scanner';
-import { parseLogSeqContent, getAllBlocks } from './parser';
+import { parseLogseqContent, getAllBlocks } from './parser';
 
 export interface IndexedPage {
   path: string;
@@ -46,7 +46,7 @@ export async function buildIndex(filePaths: string[], rootPath: string): Promise
     try {
       const content = await readMarkdownFile(filePath);
       const { frontmatter, body } = parseMarkdown(content);
-      const blocks = parseLogSeqContent(body);
+      const blocks = parseLogseqContent(body);
       const allBlocks = getAllBlocks(blocks);
 
       const pageName = getPageName(filePath, rootPath);

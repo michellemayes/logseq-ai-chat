@@ -9,7 +9,7 @@ interface Block {
   blockRefs: string[];
 }
 
-export function parseLogSeqContent(content: string): Block[] {
+export function parseLogseqContent(content: string): Block[] {
   const lines = content.split('\n');
   const blocks: Block[] = [];
   const stack: Block[] = [];
@@ -111,7 +111,7 @@ export function parseLogSeqContent(content: string): Block[] {
     const { tags, cleaned: content3 } = extractTags(content2);
     const { references, blockRefs } = extractReferences(content3);
     
-    // Don't skip empty content - keep it as is (LogSeq allows empty bullets)
+    // Don't skip empty content - keep it as is (Logseq allows empty bullets)
     const finalContent = content3.trim();
     
     const block: Block = {

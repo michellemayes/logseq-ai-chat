@@ -1,5 +1,5 @@
 ## ADDED Requirements
-### Requirement: LogSeq Graph Analysis and Indexing
+### Requirement: Logseq Graph Analysis and Indexing
 The system SHALL index pages, blocks, backlinks, forward links, tags, properties, namespaces, and journals to support search and traversal.
 
 #### Scenario: Full-text search returns relevant blocks

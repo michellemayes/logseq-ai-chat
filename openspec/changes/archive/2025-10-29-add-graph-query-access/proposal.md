@@ -1,5 +1,5 @@
 ## Why
-The AI assistant incorrectly claims it doesn't have access to LogSeq files, even though the application maintains a full in-memory graph index. The AI needs to be informed that it has direct graph access and provided with query capabilities to retrieve specific pages and journal entries on demand. This will enable the AI to read journal entries, query pages by name, and answer questions about graph content directly.
+The AI assistant incorrectly claims it doesn't have access to Logseq files, even though the application maintains a full in-memory graph index. The AI needs to be informed that it has direct graph access and provided with query capabilities to retrieve specific pages and journal entries on demand. This will enable the AI to read journal entries, query pages by name, and answer questions about graph content directly.
 
 ## What Changes
 - Add graph query functions to retrieve specific pages/journal entries by name or date

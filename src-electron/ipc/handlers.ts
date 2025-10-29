@@ -1,8 +1,8 @@
 import { ipcMain, dialog, shell } from 'electron';
 import { getSettings, setSettings, getContextSettings } from '../store/settings';
 import { Settings } from '../types';
-import { scanLogSeqDirectory, readMarkdownFile, writeMarkdownFile, parseMarkdown } from '../filesystem/scanner';
-import { watchLogSeqDirectory } from '../filesystem/watcher';
+import { scanLogseqDirectory, readMarkdownFile, writeMarkdownFile, parseMarkdown } from '../filesystem/scanner';
+import { watchLogseqDirectory } from '../filesystem/watcher';
 import { searchGraph, getPage, getJournal } from '../graph/search';
 import { chatWithLLM } from '../llm/provider';
 import { buildIndex } from '../graph/index';
@@ -21,12 +21,12 @@ export function setupIpcHandlers() {
     if (settings.logseqPath) {
       try {
         console.log('[ipc/handlers] Building index for path:', settings.logseqPath);
-        const files = await scanLogSeqDirectory(settings.logseqPath);
+        const files = await scanLogseqDirectory(settings.logseqPath);
         console.log('[ipc/handlers] Found', files.length, 'files');
         const journalFiles = files.filter(f => f.includes('journals/'));
         console.log('[ipc/handlers] Journal files:', journalFiles);
         await buildIndex(files, settings.logseqPath);
-        watchLogSeqDirectory(settings.logseqPath);
+        watchLogseqDirectory(settings.logseqPath);
       } catch (error) {
         console.error('Error initializing index:', error);
       }
@@ -44,7 +44,7 @@ export function setupIpcHandlers() {
 
   // File system
   ipcMain.handle('scan-directory', async (_event, path: string) => {
-    return scanLogSeqDirectory(path);
+    return scanLogseqDirectory(path);
   });
 
   ipcMain.handle('read-file', async (_event, path: string) => {
@@ -59,7 +59,7 @@ export function setupIpcHandlers() {
       return { pages: 0, journals: 0 };
     }
     console.log('[ipc/handlers] Rebuilding index for path:', settings.logseqPath);
-    const files = await scanLogSeqDirectory(settings.logseqPath);
+    const files = await scanLogseqDirectory(settings.logseqPath);
     await buildIndex(files, settings.logseqPath);
     const journalCount = files.filter((f) => f.includes('/journals/')).length;
     console.log('[ipc/handlers] Rebuild complete. Files:', files.length, 'journal files:', journalCount);
@@ -79,7 +79,7 @@ export function setupIpcHandlers() {
   });
 
   ipcMain.handle('watch-directory', async (_event, path: string) => {
-    watchLogSeqDirectory(path);
+    watchLogseqDirectory(path);
   });
 
   // Search
@@ -118,8 +118,8 @@ export function setupIpcHandlers() {
           
           // Parse and format the content directly
           const { frontmatter, body } = parseMarkdown(content);
-          const { parseLogSeqContent, getAllBlocks } = await import('../graph/parser');
-          const blocks = parseLogSeqContent(body);
+          const { parseLogseqContent, getAllBlocks } = await import('../graph/parser');
+          const blocks = parseLogseqContent(body);
           const allBlocks = getAllBlocks(blocks);
           
           result = {
@@ -143,7 +143,7 @@ export function setupIpcHandlers() {
           
           // Also rebuild index for future queries
           try {
-            const files = await scanLogSeqDirectory(settings.logseqPath);
+            const files = await scanLogseqDirectory(settings.logseqPath);
             await buildIndex(files, settings.logseqPath);
           } catch (indexError) {
             console.error('[ipc/handlers] Failed to rebuild index:', indexError);
@@ -195,8 +195,8 @@ export function setupIpcHandlers() {
           const { frontmatter, body } = parseMarkdown(content);
           console.log('[ipc/handlers] Body to parse (first 500 chars):', body.substring(0, 500));
           
-          const { parseLogSeqContent, getAllBlocks } = await import('../graph/parser');
-          const blocks = parseLogSeqContent(body);
+          const { parseLogseqContent, getAllBlocks } = await import('../graph/parser');
+          const blocks = parseLogseqContent(body);
           const allBlocks = getAllBlocks(blocks);
           
           console.log('[ipc/handlers] Parsed journal blocks:', allBlocks.length);
@@ -206,7 +206,7 @@ export function setupIpcHandlers() {
           
           // Filter out blocks with completely empty content UNLESS they're intentionally empty bullets
           const validBlocks = allBlocks.filter(b => {
-            // Keep blocks even if content is empty (LogSeq allows empty bullets)
+            // Keep blocks even if content is empty (Logseq allows empty bullets)
             // But log them for debugging
             if (!b.content || b.content.trim() === '') {
               console.log(`[ipc/handlers] Found empty block at index ${allBlocks.indexOf(b)}`);
@@ -263,7 +263,7 @@ export function setupIpcHandlers() {
   ipcMain.handle('create-journal-entry', async (_event, dateStr: string, content: string) => {
     const settings = getSettings();
     if (!settings.logseqPath) {
-      throw new Error('LogSeq path not configured');
+      throw new Error('Logseq path not configured');
     }
 
     const date = new Date(dateStr);
@@ -300,7 +300,7 @@ export function setupIpcHandlers() {
   ipcMain.handle('create-page', async (_event, pageName: string, content: string) => {
     const settings = getSettings();
     if (!settings.logseqPath) {
-      throw new Error('LogSeq path not configured');
+      throw new Error('Logseq path not configured');
     }
 
     // Strip 'pages/' prefix if present (should not be included in pageName)
@@ -316,7 +316,7 @@ export function setupIpcHandlers() {
   ipcMain.handle('append-to-page', async (_event, pageName: string, content: string) => {
     const settings = getSettings();
     if (!settings.logseqPath) {
-      throw new Error('LogSeq path not configured');
+      throw new Error('Logseq path not configured');
     }
 
     // Handle journal entries (format: journals/2025_10_29 or journals/YYYY_MM_DD)

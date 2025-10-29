@@ -1,7 +1,7 @@
 {
   "name": "logseq-ai-chat",
   "version": "0.1.0",
-  "description": "AI chat interface integrated with LogSeq",
+  "description": "AI chat interface integrated with Logseq",
   "main": "dist/main.js",
   "scripts": {
     "dev": "concurrently --kill-others-on-fail \"npm run dev:react\" \"npm run dev:electron\"",

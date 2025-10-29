@@ -1,13 +1,13 @@
 import { watch } from 'chokidar';
 import { BrowserWindow } from 'electron';
-import { scanLogSeqDirectory } from './scanner';
+import { scanLogseqDirectory } from './scanner';
 import { buildIndex } from '../graph/index';
 
 let watcher: ReturnType<typeof watch> | null = null;
 let debounceTimer: NodeJS.Timeout | null = null;
 const DEBOUNCE_MS = 500;
 
-export function watchLogSeqDirectory(path: string): void {
+export function watchLogseqDirectory(path: string): void {
   if (watcher) {
     watcher.close();
   }
@@ -25,7 +25,7 @@ export function watchLogSeqDirectory(path: string): void {
 
     debounceTimer = setTimeout(async () => {
       try {
-        const files = await scanLogSeqDirectory(path);
+        const files = await scanLogseqDirectory(path);
         buildIndex(files, path);
         
         const windows = BrowserWindow.getAllWindows();

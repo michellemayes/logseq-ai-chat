@@ -12,7 +12,7 @@ export default function MessageList({ messages, loading, endRef }: MessageListPr
   if (messages.length === 0 && !loading) {
     return (
       <div className="message-list empty">
-        <p className="empty-message">Start a conversation about your LogSeq notes</p>
+        <p className="empty-message">Start a conversation about your Logseq notes</p>
       </div>
     );
   }

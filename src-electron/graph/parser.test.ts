@@ -1,10 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { parseLogSeqContent, getAllBlocks } from './parser';
+import { parseLogseqContent, getAllBlocks } from './parser';
 
-describe('LogSeq Parser', () => {
+describe('Logseq Parser', () => {
   it('should parse simple bullet points', () => {
     const content = '- First item\n- Second item\n- Third item';
-    const blocks = parseLogSeqContent(content);
+    const blocks = parseLogseqContent(content);
     
     const allBlocks = getAllBlocks(blocks);
     // Parser may filter some lines, so check for at least some blocks parsed
@@ -19,7 +19,7 @@ describe('LogSeq Parser', () => {
 
   it('should parse nested blocks', () => {
     const content = '- Parent\n  - Child 1\n  - Child 2';
-    const blocks = parseLogSeqContent(content);
+    const blocks = parseLogseqContent(content);
     
     const allBlocks = getAllBlocks(blocks);
     expect(allBlocks.length).toBeGreaterThanOrEqual(2);
@@ -33,7 +33,7 @@ describe('LogSeq Parser', () => {
 
   it('should extract page references', () => {
     const content = '- This references [[Page Name]] and [[Another Page]]';
-    const blocks = parseLogSeqContent(content);
+    const blocks = parseLogseqContent(content);
     const allBlocks = getAllBlocks(blocks);
     
     if (allBlocks.length > 0) {
@@ -46,7 +46,7 @@ describe('LogSeq Parser', () => {
 
   it('should extract block references', () => {
     const content = '- This references ((block-id-123))';
-    const blocks = parseLogSeqContent(content);
+    const blocks = parseLogseqContent(content);
     const allBlocks = getAllBlocks(blocks);
     
     if (allBlocks.length > 0) {
@@ -59,7 +59,7 @@ describe('LogSeq Parser', () => {
 
   it('should extract tags', () => {
     const content = '- Item with #tag and #[[multi-word tag]]';
-    const blocks = parseLogSeqContent(content);
+    const blocks = parseLogseqContent(content);
     const allBlocks = getAllBlocks(blocks);
     
     if (allBlocks.length > 0) {
@@ -72,7 +72,7 @@ describe('LogSeq Parser', () => {
 
   it('should extract properties', () => {
     const content = '- Block content\nproperty:: value\nanother:: property';
-    const blocks = parseLogSeqContent(content);
+    const blocks = parseLogseqContent(content);
     const allBlocks = getAllBlocks(blocks);
     
     if (allBlocks.length > 0) {
@@ -85,7 +85,7 @@ describe('LogSeq Parser', () => {
 
   it('should extract block IDs', () => {
     const content = '- abc123def4567 Block with ID';
-    const blocks = parseLogSeqContent(content);
+    const blocks = parseLogseqContent(content);
     const allBlocks = getAllBlocks(blocks);
     
     if (allBlocks.length > 0) {
@@ -99,7 +99,7 @@ describe('LogSeq Parser', () => {
 
   it('should flatten nested blocks with getAllBlocks', () => {
     const content = '- Parent\n  - Child 1\n  - Child 2';
-    const blocks = parseLogSeqContent(content);
+    const blocks = parseLogseqContent(content);
     const allBlocks = getAllBlocks(blocks);
     
     expect(allBlocks.length).toBeGreaterThanOrEqual(1);

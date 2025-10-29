@@ -1,6 +1,6 @@
 ## ADDED Requirements
 ### Requirement: Application Settings
-The system SHALL provide settings for LogSeq path, Groq API key, model selection, provider selection (extensible), theme preference, and auto-save preferences.
+The system SHALL provide settings for Logseq path, Groq API key, model selection, provider selection (extensible), theme preference, and auto-save preferences.
 
 #### Scenario: Persist and apply settings
 - **WHEN** a user updates settings

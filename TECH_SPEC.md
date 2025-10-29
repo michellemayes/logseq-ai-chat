@@ -1,7 +1,7 @@
-# LogSeq AI LLM Chat Interface
+# Logseq AI LLM Chat Interface
 
 ## Project Overview
-Build an Electron desktop application that provides an AI chat interface integrated with LogSeq. The app should read and write to a local LogSeq graph via direct file system access, allowing users to search their knowledge base, get contextual answers, create journal entries, and manage markdown pages.
+Build an Electron desktop application that provides an AI chat interface integrated with Logseq. The app should read and write to a local Logseq graph via direct file system access, allowing users to search their knowledge base, get contextual answers, create journal entries, and manage markdown pages.
 
 ## Tech Stack
 - **Framework**: Electron (for desktop app with file system access)
@@ -14,12 +14,12 @@ Build an Electron desktop application that provides an AI chat interface integra
 ## Core Requirements
 
 ### 1. File System Integration
-- Allow user to configure LogSeq graph directory path (store in app settings)
+- Allow user to configure Logseq graph directory path (store in app settings)
 - Recursively scan directory for `.md` files
 - Parse markdown files with YAML frontmatter
 - Watch for file changes and update index in real-time
-- Support LogSeq's file structure: `/pages/`, `/journals/`, and `/logseq/` directories
-- Parse LogSeq-specific syntax:
+- Support Logseq's file structure: `/pages/`, `/journals/`, and `/logseq/` directories
+- Parse Logseq-specific syntax:
   - Block references: `((block-id))`
   - Page references: `[[Page Name]]`
   - Tags: `#tag` and `#[[multi-word tag]]`
@@ -27,7 +27,7 @@ Build an Electron desktop application that provides an AI chat interface integra
   - TODO/DOING/DONE markers
   - Block indentation (tab-based hierarchy)
 
-### 2. LogSeq Graph Analysis
+### 2. Logseq Graph Analysis
 Implement comprehensive graph analysis capabilities:
 - **Full-text search** across all pages and blocks
 - **Backlinks tracking**: Find all pages that reference a given page
@@ -51,7 +51,7 @@ Implement comprehensive graph analysis capabilities:
 ### 4. Context Injection System
 When user asks a question:
 1. Analyze the query to determine relevant search terms
-2. Search LogSeq graph for relevant content
+2. Search Logseq graph for relevant content
 3. Retrieve full context including:
    - Matching page content
    - Related blocks
@@ -60,13 +60,13 @@ When user asks a question:
    - Parent/child block relationships
 4. Format context clearly for LLM
 5. Include metadata: page names, block IDs, modification dates
-6. Send to LLM with system prompt that explains LogSeq context
+6. Send to LLM with system prompt that explains Logseq context
 
 ### 5. Content Creation Features
 
 #### Journal Entries
 - Create or append to daily journal (format: `journals/YYYY_MM_DD.md`)
-- Use proper LogSeq journal structure based on https://docs.logseq.com/:
+- Use proper Logseq journal structure based on https://docs.logseq.com/:
   - Date as h1 heading: `# Tuesday, Oct 29th, 2025`
   - Bullets for entries with proper indentation
   - Auto-timestamp blocks if requested
@@ -76,42 +76,42 @@ When user asks a question:
 - Create new pages in `/pages/` directory
 - Sanitize page names (handle special characters, spaces → underscores)
 - Add YAML frontmatter with at least `title` property
-- Support LogSeq properties format: `property:: value` lines
+- Support Logseq properties format: `property:: value` lines
 - Handle namespace pages (create directory structure if needed)
 
 #### Block Addition & Page Editing
 - Append blocks to existing pages with proper indentation
-- Maintain LogSeq block structure (bullets, indentation)
+- Maintain Logseq block structure (bullets, indentation)
 - Support adding child blocks
 - Allow AI to suggest edits to existing content with user confirmation
 - Track block IDs when modifying content
 
 ### 6. UI/UX Design
 
-**Design Philosophy**: Simple, professional, seamless companion to LogSeq
-- Clean, minimal interface matching LogSeq's aesthetic
+**Design Philosophy**: Simple, professional, seamless companion to Logseq
+- Clean, minimal interface matching Logseq's aesthetic
 - Professional color scheme (neutral grays, subtle accents)
-- Typography similar to LogSeq (system fonts, good readability)
+- Typography similar to Logseq (system fonts, good readability)
 
 **Layout**:
 - Single-panel chat interface
 - Messages show:
   - User queries
   - AI responses with inline context citations
-  - Embedded cards showing where context was retrieved (page name, excerpt, link to open in LogSeq)
+  - Embedded cards showing where context was retrieved (page name, excerpt, link to open in Logseq)
 - Collapsible sidebar for:
-  - Settings (LogSeq path, API key, model selection)
+  - Settings (Logseq path, API key, model selection)
   - Recent conversations
   - Quick actions (New Journal, New Page, Search)
 
 **Context Display**:
-- When AI uses LogSeq context, show inline citations like:
+- When AI uses Logseq context, show inline citations like:
   ```
   "According to your note on [[Project Planning]]:
   [Card showing: Project Planning > bullet point excerpt]"
   ```
 - Make citations clickable to copy block reference or page name
-- Visual distinction between AI's general knowledge vs LogSeq-specific info
+- Visual distinction between AI's general knowledge vs Logseq-specific info
 
 **Dark/Light Mode**:
 - Toggle switch in header
@@ -122,13 +122,13 @@ When user asks a question:
 ### 7. Key Features
 
 **Search Functionality**:
-- Search bar that queries LogSeq graph
+- Search bar that queries Logseq graph
 - Show results with context snippets
 - Filter by: pages, journals, tags, properties
 - Recent pages list
 
 **Smart Context Selection**:
-- AI automatically determines what LogSeq content is relevant
+- AI automatically determines what Logseq content is relevant
 - User can manually @mention pages to force inclusion
 - Show "Context Used" section in responses (collapsible)
 
@@ -139,7 +139,7 @@ When user asks a question:
 - "Search Graph" - Direct search interface
 
 **Settings**:
-- LogSeq graph directory path (with file picker)
+- Logseq graph directory path (with file picker)
 - Groq API key input (masked)
 - Model selection dropdown
 - Provider selection (for future extensibility)
@@ -149,14 +149,14 @@ When user asks a question:
 ### 8. Technical Implementation Details
 
 **File Watching**:
-- Use `chokidar` or Node's `fs.watch` to monitor LogSeq directory
+- Use `chokidar` or Node's `fs.watch` to monitor Logseq directory
 - Debounce file changes to avoid excessive re-indexing
 - Update in-memory index when files change
 
 **Markdown Processing**:
 - Use `gray-matter` for frontmatter parsing
 - Use `remark` or similar for markdown AST parsing
-- Custom parser for LogSeq-specific syntax (block refs, properties)
+- Custom parser for Logseq-specific syntax (block refs, properties)
 
 **Data Structures**:
 - In-memory index of all pages/blocks for fast search
@@ -174,13 +174,13 @@ When user asks a question:
 **Security**:
 - Store API keys in secure electron store
 - Never log sensitive data
-- File operations should be sandboxed to LogSeq directory
+- File operations should be sandboxed to Logseq directory
 
 ### 9. User Experience Flow
 
 **First Launch**:
 1. Welcome screen
-2. Prompt to select LogSeq graph directory
+2. Prompt to select Logseq graph directory
 3. Prompt for Groq API key
 4. Quick tutorial/tips overlay
 
@@ -198,7 +198,7 @@ When user asks a question:
 3. Preview shown to user in modal
 4. User can edit or approve
 5. File written to journals directory
-6. Confirmation shown with link to open in LogSeq
+6. Confirmation shown with link to open in Logseq
 
 ## Code Quality Requirements
 - TypeScript with strict mode
@@ -214,17 +214,17 @@ When user asks a question:
 2. README with:
    - Installation instructions
    - How to get Groq API key
-   - How to configure LogSeq path
+   - How to configure Logseq path
    - Usage examples
 3. Clean project structure
 4. Package.json with all scripts (dev, build, package)
 
 ## Priority Order
-1. File system reading and LogSeq parsing
+1. File system reading and Logseq parsing
 2. Basic chat UI with Groq integration
 3. Context search and injection
 4. Journal entry creation
 5. Page creation and editing
 6. Advanced features (graph visualization, etc.)
 
-Build this as a production-ready application that's fast, reliable, and feels like a natural extension of LogSeq.
+Build this as a production-ready application that's fast, reliable, and feels like a natural extension of Logseq.

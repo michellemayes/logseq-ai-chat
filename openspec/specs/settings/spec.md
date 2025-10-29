@@ -4,7 +4,7 @@
 TBD - created by archiving change add-logseq-ai-chat-mvp. Update Purpose after archive.
 ## Requirements
 ### Requirement: Application Settings
-The system SHALL provide settings for LogSeq path, Groq API key, model selection, provider selection (extensible), theme preference, and auto-save preferences. The system SHALL also provide configurable context settings for controlling how much and what type of content is included in LLM context.
+The system SHALL provide settings for Logseq path, Groq API key, model selection, provider selection (extensible), theme preference, and auto-save preferences. The system SHALL also provide configurable context settings for controlling how much and what type of content is included in LLM context.
 
 #### Scenario: Persist and apply settings
 - **WHEN** a user updates settings

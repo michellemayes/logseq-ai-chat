@@ -2,7 +2,7 @@ import { readdir, readFile } from 'fs/promises';
 import { join, extname } from 'path';
 import matter from 'gray-matter';
 
-export async function scanLogSeqDirectory(rootPath: string): Promise<string[]> {
+export async function scanLogseqDirectory(rootPath: string): Promise<string[]> {
   const files: string[] = [];
   
   async function scanDir(dir: string) {

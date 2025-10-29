@@ -1,5 +1,5 @@
 ## Context
-Electron + React desktop app integrating with local LogSeq graph. MVP targets local FS parsing, in-memory indexing, Groq-based chat with contextual citations, and basic content creation flows.
+Electron + React desktop app integrating with local Logseq graph. MVP targets local FS parsing, in-memory indexing, Groq-based chat with contextual citations, and basic content creation flows.
 
 ## Goals / Non-Goals
 - Goals: Minimal, reliable MVP per TECH_SPEC priority order. Extensible provider design.
@@ -12,7 +12,7 @@ Electron + React desktop app integrating with local LogSeq graph. MVP targets lo
 
 ## Risks / Trade-offs
 - Large graphs may stress memory → mitigation: debounce watchers, optional limits.
-- Markdown edge cases in LogSeq syntax → mitigation: robust parsing and tests.
+- Markdown edge cases in Logseq syntax → mitigation: robust parsing and tests.
 
 ## Migration Plan
 Ship MVP capabilities incrementally behind tasks; expand providers and persistence later.

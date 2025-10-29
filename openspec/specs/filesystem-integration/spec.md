@@ -3,11 +3,11 @@
 ## Purpose
 TBD - created by archiving change add-logseq-ai-chat-mvp. Update Purpose after archive.
 ## Requirements
-### Requirement: LogSeq File System Integration
-The system SHALL allow configuring a LogSeq graph path, recursively scan `.md` files under `/pages/`, `/journals/`, and `/logseq/`, parse YAML frontmatter, and watch for changes with debounced re-indexing.
+### Requirement: Logseq File System Integration
+The system SHALL allow configuring a Logseq graph path, recursively scan `.md` files under `/pages/`, `/journals/`, and `/logseq/`, parse YAML frontmatter, and watch for changes with debounced re-indexing.
 
 #### Scenario: Configure graph path and index
-- **WHEN** a user sets a valid LogSeq directory path
+- **WHEN** a user sets a valid Logseq directory path
 - **THEN** the system scans and indexes markdown files and metadata
 
 #### Scenario: React to file changes

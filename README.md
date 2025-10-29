@@ -1,14 +1,14 @@
-# LogSeq AI Chat
+# Logseq AI Chat
 
-An Electron desktop application that provides an AI chat interface integrated with LogSeq. Chat with your notes using Groq LLM with automatic context retrieval from your LogSeq knowledge graph.
+An Electron desktop application that provides an AI chat interface integrated with Logseq. Chat with your notes using Groq LLM with automatic context retrieval from your Logseq knowledge graph.
 
 ## Features
 
-- **File System Integration**: Direct access to your LogSeq graph directory
+- **File System Integration**: Direct access to your Logseq graph directory
 - **Graph Analysis**: Full-text search, backlinks, forward links, tag and property indexing
 - **LLM Integration**: Groq API support with extensible provider architecture
 - **Context Injection**: Automatic retrieval of relevant content from your notes
-- **Content Creation**: Create journal entries and pages with proper LogSeq formatting
+- **Content Creation**: Create journal entries and pages with proper Logseq formatting
 - **Modern UI**: Clean chat interface with dark/light theme support and inline citations
 
 ## Installation
@@ -16,7 +16,7 @@ An Electron desktop application that provides an AI chat interface integrated wi
 ### Prerequisites
 
 - Node.js 18+ and npm
-- A LogSeq graph directory
+- A Logseq graph directory
 - Groq API key ([Get one here](https://console.groq.com/))
 
 ### Setup
@@ -55,12 +55,12 @@ This starts both the Electron main process and the React development server.
 3. Create a new API key
 4. Copy the key (it won't be shown again)
 
-### Setting Up LogSeq Path
+### Setting Up Logseq Path
 
 1. Open the app
 2. Click the settings button in the header
-3. Click "Browse" next to "LogSeq Graph Path"
-4. Select your LogSeq graph directory (typically contains `pages/`, `journals/`, and `logseq/` folders)
+3. Click "Browse" next to "Logseq Graph Path"
+4. Select your Logseq graph directory (typically contains `pages/`, `journals/`, and `logseq/` folders)
 5. Enter your Groq API key
 6. Select your preferred model
 7. Click "Save Settings"
@@ -88,7 +88,7 @@ These settings help balance token usage, cost, and response quality. Use stricte
 ### Basic Chat
 
 1. Ask questions about your notes
-2. The app automatically searches your LogSeq graph for relevant content
+2. The app automatically searches your Logseq graph for relevant content
 3. AI responses include citations showing which pages/blocks were referenced
 4. Click on citations to see excerpts from source content
 
@@ -141,7 +141,7 @@ logseq-ai-chat/
 
 - API keys are stored securely using `electron-store`
 - No sensitive data is logged
-- File operations are restricted to the configured LogSeq directory
+- File operations are restricted to the configured Logseq directory
 
 ## License
 

@@ -1,8 +1,8 @@
 ## 1. Implementation
 - [x] 1.1 Scaffold Electron + React + TypeScript project structure
-- [x] 1.2 Implement settings storage (LogSeq path, API key, model)
+- [x] 1.2 Implement settings storage (Logseq path, API key, model)
 - [x] 1.3 Implement file system scanning and markdown parsing with frontmatter
-- [x] 1.4 Implement LogSeq syntax parsing (refs, tags, properties, block IDs)
+- [x] 1.4 Implement Logseq syntax parsing (refs, tags, properties, block IDs)
 - [x] 1.5 Build in-memory index (pages, blocks, links, tags, properties)
 - [x] 1.6 Implement file watching with debounced re-indexing
 - [x] 1.7 Implement Groq provider and provider abstraction
@@ -15,7 +15,7 @@
 
 ## 2. Validation
 - [x] 2.1 Unit tests: parsing, indexing, search, context packaging
-- [x] 2.2 Manual test: configure LogSeq path and API key
+- [x] 2.2 Manual test: configure Logseq path and API key
 - [x] 2.3 Manual test: ask question, verify citations and open sources
 - [x] 2.4 Manual test: create journal entry with correct format
 - [x] 2.5 Manual test: create page and append blocks with indentation
@@ -23,5 +23,5 @@
 
 ## 3. Delivery
 - [x] 3.1 App packaging scripts (dev, build, package)
-- [x] 3.2 README: install, Groq key, LogSeq path config, usage
+- [x] 3.2 README: install, Groq key, Logseq path config, usage
 

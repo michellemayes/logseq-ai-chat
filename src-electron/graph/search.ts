@@ -138,7 +138,7 @@ export function getPage(pageName: string): PageContent | null {
 }
 
 export function getJournal(dateStr: string): PageContent | null {
-  // Convert date from YYYY-MM-DD to YYYY_MM_DD format (LogSeq journal format)
+  // Convert date from YYYY-MM-DD to YYYY_MM_DD format (Logseq journal format)
   const journalPageName = `journals/${dateStr.replace(/-/g, '_')}`;
   return getPage(journalPageName);
 }

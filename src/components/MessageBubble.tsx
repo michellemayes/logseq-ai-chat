@@ -37,7 +37,7 @@ export default function MessageBubble({ message }: MessageBubbleProps) {
       {message.noContextWarning && (
         <div
           className="warning-bubble"
-          aria-label="No LogSeq context"
+          aria-label="No Logseq context"
           ref={bubbleRef}
           onMouseEnter={() => setTooltipVisible(true)}
           onMouseLeave={() => setTooltipVisible(false)}
@@ -48,7 +48,7 @@ export default function MessageBubble({ message }: MessageBubbleProps) {
             className={`warning-tooltip${tooltipVisible ? ' visible' : ''}`}
             style={{ top: tooltipPos.top, left: tooltipPos.left }}
           >
-            ℹ️ No LogSeq context was available for this query. Try specifying a page/journal or rebuild the index.
+            ℹ️ No Logseq context was available for this query. Try specifying a page/journal or rebuild the index.
           </div>
         </div>
       )}
