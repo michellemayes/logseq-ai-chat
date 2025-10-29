@@ -5,9 +5,10 @@ import './MessageList.css';
 interface MessageListProps {
   messages: Message[];
   loading: boolean;
+  endRef?: React.RefObject<HTMLDivElement>;
 }
 
-export default function MessageList({ messages, loading }: MessageListProps) {
+export default function MessageList({ messages, loading, endRef }: MessageListProps) {
   if (messages.length === 0 && !loading) {
     return (
       <div className="message-list empty">
@@ -26,6 +27,7 @@ export default function MessageList({ messages, loading }: MessageListProps) {
           <div className="message-content">Thinking...</div>
         </div>
       )}
+      <div ref={endRef} />
     </div>
   );
 }

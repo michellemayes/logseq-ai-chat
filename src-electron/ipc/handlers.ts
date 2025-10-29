@@ -50,6 +50,21 @@ export function setupIpcHandlers() {
     return readMarkdownFile(path);
   });
 
+  // Rebuild index on demand
+  ipcMain.handle('rebuild-index', async () => {
+    const settings = getSettings();
+    if (!settings.logseqPath) {
+      console.warn('[ipc/handlers] rebuild-index: No logseqPath set');
+      return { pages: 0, journals: 0 };
+    }
+    console.log('[ipc/handlers] Rebuilding index for path:', settings.logseqPath);
+    const files = await scanLogSeqDirectory(settings.logseqPath);
+    await buildIndex(files, settings.logseqPath);
+    const journalCount = files.filter((f) => f.includes('/journals/')).length;
+    console.log('[ipc/handlers] Rebuild complete. Files:', files.length, 'journal files:', journalCount);
+    return { files: files.length, journalFiles: journalCount };
+  });
+
   ipcMain.handle('write-file', async (_event, path: string, content: string) => {
     return writeMarkdownFile(path, content);
   });

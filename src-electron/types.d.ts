@@ -36,6 +36,7 @@ export interface ElectronAPI {
   search: (query: string) => Promise<Array<{ pageName: string; score: number; excerpt: string; blocks: Array<{ content: string; id?: string }> }>>;
   getPage: (pageName: string) => Promise<PageContent | null>;
   getJournal: (dateStr: string) => Promise<PageContent | null>;
+  rebuildIndex: () => Promise<{ files: number; journalFiles: number }>;
   openFile: (filePath: string) => Promise<void>;
   createJournalEntry: (date: string, content: string) => Promise<string>;
   createPage: (pageName: string, content: string) => Promise<string>;

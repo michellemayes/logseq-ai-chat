@@ -14,6 +14,7 @@ interface ElectronAPI {
   search: (query: string) => Promise<any[]>;
   getPage: (pageName: string) => Promise<PageContent | null>;
   getJournal: (dateStr: string) => Promise<PageContent | null>;
+  rebuildIndex: () => Promise<{ files: number; journalFiles: number }>;
   openFile: (filePath: string) => Promise<void>;
   createJournalEntry: (date: string, content: string) => Promise<string>;
   createPage: (pageName: string, content: string) => Promise<string>;
@@ -40,6 +41,7 @@ const electronAPI: ElectronAPI = {
   
   // Search
   search: (query: string) => ipcRenderer.invoke('search', query),
+  rebuildIndex: () => ipcRenderer.invoke('rebuild-index'),
   
   // Graph queries
   getPage: (pageName: string) => ipcRenderer.invoke('get-page', pageName) as Promise<PageContent | null>,

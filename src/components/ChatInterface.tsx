@@ -34,6 +34,11 @@ export default function ChatInterface({ onOpenSidebar }: ChatInterfaceProps) {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
+  // Ensure index is built on mount (so search works without re-saving settings)
+  useEffect(() => {
+    window.electronAPI.rebuildIndex?.().catch(() => {});
+  }, []);
+
   const handleSend = async (content: string) => {
     if (!content.trim() || !settings.apiKey || !settings.logseqPath) {
       return;
@@ -247,6 +252,14 @@ export default function ChatInterface({ onOpenSidebar }: ChatInterfaceProps) {
         context
       );
 
+      // If no context was provided to the LLM, surface a UI notice
+      if (!context || context.length === 0) {
+        setMessages((prev) => [
+          ...prev,
+          { role: 'assistant', content: 'ℹ️ No LogSeq context was available for this query. Try specifying a page/journal or rebuild the index.' },
+        ]);
+      }
+
       // Parse response for LOGSEQ_ACTION commands
       const actionMatch = response.match(/<LOGSEQ_ACTION>([\s\S]*?)<\/LOGSEQ_ACTION>/);
       let action = undefined;
@@ -338,8 +351,7 @@ export default function ChatInterface({ onOpenSidebar }: ChatInterfaceProps) {
   return (
     <div className="chat-interface">
       <Header onOpenSidebar={onOpenSidebar} onToggleTheme={toggleTheme} theme={theme} />
-      <MessageList messages={messages} loading={loading} />
-      <div ref={messagesEndRef} />
+      <MessageList messages={messages} loading={loading} endRef={messagesEndRef} />
       <MessageInput onSend={handleSend} disabled={loading || !settings.apiKey || !settings.logseqPath} />
     </div>
   );
