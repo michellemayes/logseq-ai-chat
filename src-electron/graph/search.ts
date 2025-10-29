@@ -91,9 +91,6 @@ export interface PageContent {
 
 export function getPage(pageName: string): PageContent | null {
   const index = getIndex();
-  console.log('[graph/search] getPage called for:', pageName);
-  console.log('[graph/search] Available pages count:', index.pages.size);
-  console.log('[graph/search] Checking for page:', pageName);
   
   // Try exact match first
   let page = index.pages.get(pageName);
@@ -102,26 +99,15 @@ export function getPage(pageName: string): PageContent | null {
   if (!page) {
     for (const [key, value] of index.pages.entries()) {
       if (key.toLowerCase() === pageName.toLowerCase()) {
-        console.log('[graph/search] Found case-insensitive match:', key);
         page = value;
         break;
       }
     }
   }
   
-  // List some journal pages for debugging
-  if (pageName.startsWith('journals/')) {
-    const journalPages = Array.from(index.pages.keys()).filter(k => k.startsWith('journals/'));
-    console.log('[graph/search] Available journal pages:', journalPages);
-  }
-  
   if (!page) {
-    console.log('[graph/search] Page NOT found:', pageName);
     return null;
   }
-
-  console.log('[graph/search] Page found:', page.name, 'Blocks:', page.blocks.length);
-  console.log('[graph/search] Page blocks:', page.blocks.map(b => ({ id: b.id, content: b.content.substring(0, 100) })));
 
   return {
     pageName: page.name,
@@ -136,7 +122,6 @@ export function getPage(pageName: string): PageContent | null {
 export function getJournal(dateStr: string): PageContent | null {
   // Convert date from YYYY-MM-DD to YYYY_MM_DD format (LogSeq journal format)
   const journalPageName = `journals/${dateStr.replace(/-/g, '_')}`;
-  console.log('[graph/search] getJournal called for date:', dateStr, '-> journal name:', journalPageName);
   return getPage(journalPageName);
 }
 

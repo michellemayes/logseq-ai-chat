@@ -12,6 +12,7 @@ export interface ElectronAPI {
   getPage: (pageName: string) => Promise<PageContent | null>;
   getJournal: (dateStr: string) => Promise<PageContent | null>;
   rebuildIndex: () => Promise<{ files: number; journalFiles: number }>;
+  getIndexStats: () => Promise<{ pages: number; journals: number }>;
   openFile: (filePath: string) => Promise<void>;
   createJournalEntry: (date: string, content: string) => Promise<string>;
   createPage: (pageName: string, content: string) => Promise<string>;

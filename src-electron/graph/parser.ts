@@ -96,17 +96,13 @@ export function parseLogSeqContent(content: string): Block[] {
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
     if (!line.trim()) {
-      console.log(`[parser] Skipping empty line ${i}`);
       continue;
     }
     
-    console.log(`[parser] Processing line ${i}: '${line.replace(/\n/g, '\\n')}'`);
     const { level, content: rawContent, isBullet } = parseLine(line);
-    console.log(`[parser] parseLine result: level=${level}, rawContent='${rawContent}', isBullet=${isBullet}`);
     
     // Only process lines that are actual bullets (parseLine found a bullet marker)
     if (!isBullet) {
-      console.log(`[parser] Skipping non-bullet line: '${rawContent}'`);
       continue;
     }
     
@@ -117,7 +113,6 @@ export function parseLogSeqContent(content: string): Block[] {
     
     // Don't skip empty content - keep it as is (LogSeq allows empty bullets)
     const finalContent = content3.trim();
-    console.log(`[parser] Created block: level=${level}, content='${finalContent}', hasId=${!!id}, refs=${references.length}`);
     
     const block: Block = {
       id,

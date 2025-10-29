@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { Settings } from '../types';
 import './SettingsPanel.css';
 
@@ -8,6 +9,16 @@ interface SettingsPanelProps {
 }
 
 export default function SettingsPanel({ settings, onChange, onSave }: SettingsPanelProps) {
+  const [stats, setStats] = useState<{ pages: number; journals: number } | null>(null);
+
+  useEffect(() => {
+    let mounted = true;
+    window.electronAPI
+      .getIndexStats()
+      .then((s) => { if (mounted) setStats(s); })
+      .catch(() => { if (mounted) setStats({ pages: 0, journals: 0 }); });
+    return () => { mounted = false; };
+  }, [settings.logseqPath]);
   const handleChange = (key: keyof Settings, value: string) => {
     onChange({ ...settings, [key]: value });
   };
@@ -71,6 +82,32 @@ export default function SettingsPanel({ settings, onChange, onSave }: SettingsPa
         <button className="settings-save-button" onClick={onSave}>
           Save Settings
         </button>
+        <div className="settings-center-row">
+          <button
+            className="settings-button"
+            onClick={async () => {
+              try {
+                const result = await window.electronAPI.rebuildIndex();
+                console.log('[Settings] Rebuild index complete:', result);
+                // Update stats from current index after rebuild
+                try {
+                  const s = await window.electronAPI.getIndexStats();
+                  setStats(s);
+                } catch {}
+              } catch (e) {
+                console.error('Failed to rebuild index:', e);
+              }
+            }}
+            title="Rescan your LogSeq folder and rebuild the in-memory index"
+          >
+            Rebuild Index
+          </button>
+        </div>
+        <div className="settings-center-row stats-row">
+          <span className="stats-text">
+            {stats ? `${stats.pages} pages • ${stats.journals} journals` : '—'}
+          </span>
+        </div>
       </div>
     </div>
   );

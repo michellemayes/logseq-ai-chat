@@ -4,12 +4,10 @@ import matter from 'gray-matter';
 
 export async function scanLogSeqDirectory(rootPath: string): Promise<string[]> {
   const files: string[] = [];
-  console.log('[scanner] Scanning directory:', rootPath);
   
   async function scanDir(dir: string) {
     try {
       const entries = await readdir(dir, { withFileTypes: true });
-      console.log('[scanner] Found', entries.length, 'entries in:', dir);
       
       for (const entry of entries) {
         const fullPath = join(dir, entry.name);
@@ -18,9 +16,6 @@ export async function scanLogSeqDirectory(rootPath: string): Promise<string[]> {
           await scanDir(fullPath);
         } else if (entry.isFile() && extname(entry.name) === '.md') {
           files.push(fullPath);
-          if (fullPath.includes('journals/')) {
-            console.log('[scanner] Found journal file:', fullPath);
-          }
         }
       }
     } catch (error) {
@@ -29,17 +24,12 @@ export async function scanLogSeqDirectory(rootPath: string): Promise<string[]> {
   }
   
   await scanDir(rootPath);
-  console.log('[scanner] Scan complete. Total files found:', files.length);
-  const journalFiles = files.filter(f => f.includes('journals/'));
-  console.log('[scanner] Journal files found:', journalFiles.length);
   return files;
 }
 
 export async function readMarkdownFile(filePath: string): Promise<string> {
   try {
     const content = await readFile(filePath, 'utf-8');
-    console.log(`[scanner] readMarkdownFile('${filePath}'): length=${content.length}, lines=${content.split('\n').length}`);
-    console.log(`[scanner] Content preview (first 500 chars):`, JSON.stringify(content.substring(0, 500)));
     return content;
   } catch (error) {
     console.error(`[scanner] Failed to read file ${filePath}:`, error);

@@ -6,6 +6,7 @@ import { watchLogSeqDirectory } from '../filesystem/watcher';
 import { searchGraph, getPage, getJournal } from '../graph/search';
 import { chatWithLLM } from '../llm/provider';
 import { buildIndex } from '../graph/index';
+import { getIndex } from '../graph/index';
 
 export function setupIpcHandlers() {
   // Settings
@@ -63,6 +64,14 @@ export function setupIpcHandlers() {
     const journalCount = files.filter((f) => f.includes('/journals/')).length;
     console.log('[ipc/handlers] Rebuild complete. Files:', files.length, 'journal files:', journalCount);
     return { files: files.length, journalFiles: journalCount };
+  });
+
+  // Get current in-memory index stats
+  ipcMain.handle('get-index-stats', () => {
+    const idx = getIndex();
+    const pagesCount = idx.pages.size;
+    const journalsCount = Array.from(idx.pages.keys()).filter((k) => k.startsWith('journals/')).length;
+    return { pages: pagesCount, journals: journalsCount };
   });
 
   ipcMain.handle('write-file', async (_event, path: string, content: string) => {

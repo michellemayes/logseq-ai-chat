@@ -63,6 +63,23 @@
   border-top: 1px solid var(--border);
 }
 
+.settings-center-row {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.stats-row {
+  margin-top: 8px;
+}
+
+.stats-text {
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+
 .settings-save-button {
   width: 100%;
   padding: 12px;
