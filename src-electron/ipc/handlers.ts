@@ -102,7 +102,9 @@ export function setupIpcHandlers() {
           const dateStr = pageName.replace('journals/', '');
           filePath = `${settings.logseqPath}/journals/${dateStr}.md`;
         } else {
-          const sanitized = pageName.replace(/[^\w\s-]/g, '').replace(/\s+/g, '_');
+          // Strip 'pages/' prefix if present
+          const cleanPageName = pageName.startsWith('pages/') ? pageName.replace('pages/', '') : pageName;
+          const sanitized = sanitizePageName(cleanPageName);
           filePath = `${settings.logseqPath}/pages/${sanitized}.md`;
         }
         console.log('[ipc/handlers] Attempting to read file directly:', filePath);
@@ -248,7 +250,7 @@ export function setupIpcHandlers() {
   });
 
   // LLM
-  ipcMain.handle('chat', async (_event, messages: Array<{ role: string; content: string }>, context: Array<{ pageName: string; excerpt: string; blocks?: Array<{ content: string; id?: string }> }> | undefined) => {
+  ipcMain.handle('chat', async (_event, messages: Array<{ role: string; content: string }>, context: Array<{ pageName: string; excerpt: string; blocks?: Array<{ content: string; id?: string; level?: number }> }> | undefined) => {
     const settings = getSettings();
     return chatWithLLM(settings.provider, messages, context);
   });
@@ -297,9 +299,11 @@ export function setupIpcHandlers() {
       throw new Error('LogSeq path not configured');
     }
 
-    const sanitized = sanitizePageName(pageName);
+    // Strip 'pages/' prefix if present (should not be included in pageName)
+    const cleanPageName = pageName.startsWith('pages/') ? pageName.replace('pages/', '') : pageName;
+    const sanitized = sanitizePageName(cleanPageName);
     const pagePath = `${settings.logseqPath}/pages/${sanitized}.md`;
-    const pageContent = `---\ntitle: ${pageName}\n---\n\n${content}`;
+    const pageContent = `---\ntitle: ${cleanPageName}\n---\n\n${content}`;
     
     await writeMarkdownFile(pagePath, pageContent);
     return pagePath;
@@ -353,9 +357,11 @@ export function setupIpcHandlers() {
       return journalPath;
     } else {
       // Handle regular pages
-      const sanitized = sanitizePageName(pageName);
+      // Strip 'pages/' prefix if present (should not be included in pageName)
+      const cleanPageName = pageName.startsWith('pages/') ? pageName.replace('pages/', '') : pageName;
+      const sanitized = sanitizePageName(cleanPageName);
       const pagePath = `${settings.logseqPath}/pages/${sanitized}.md`;
-      console.log('[content/append] Page branch. pageName:', pageName, 'sanitized:', sanitized, '-> path:', pagePath);
+      console.log('[content/append] Page branch. pageName:', pageName, 'cleanPageName:', cleanPageName, 'sanitized:', sanitized, '-> path:', pagePath);
       
       let existing = '';
       try {

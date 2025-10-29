@@ -24,6 +24,14 @@ interface ChatInterfaceProps {
   onOpenSidebar: () => void;
 }
 
+// Helper to format blocks as markdown with proper indentation
+function formatBlocksAsMarkdown(blocks: Array<{ content: string; level: number }>): string {
+  return blocks
+    .map(b => '  '.repeat(b.level) + '- ' + b.content)
+    .join('\n')
+    .substring(0, 500);
+}
+
 export default function ChatInterface({ onOpenSidebar }: ChatInterfaceProps) {
   const { settings } = useSettings();
   const { theme, toggleTheme } = useTheme();
@@ -120,10 +128,11 @@ export default function ChatInterface({ onOpenSidebar }: ChatInterfaceProps) {
           const blocks = journal.blocks.map(b => ({
             content: b.content,
             id: b.id,
+            level: b.level,
           }));
           context.push({
             pageName: journal.pageName,
-            excerpt: journal.blocks.map(b => b.content).join('\n').substring(0, 500) || '',
+            excerpt: formatBlocksAsMarkdown(journal.blocks) || '',
             filePath: journal.path,
             blocks: blocks,
           });
@@ -147,7 +156,7 @@ export default function ChatInterface({ onOpenSidebar }: ChatInterfaceProps) {
             }));
             context.push({
               pageName: journal.pageName,
-              excerpt: journal.blocks.map(b => b.content).join('\n').substring(0, 500) || '',
+              excerpt: formatBlocksAsMarkdown(journal.blocks) || '',
               filePath: journal.path,
               blocks: blocks,
             });
@@ -169,10 +178,11 @@ export default function ChatInterface({ onOpenSidebar }: ChatInterfaceProps) {
               const blocks = page.blocks.map(b => ({
                 content: b.content,
                 id: b.id,
+                level: b.level,
               }));
               context.push({
                 pageName: page.pageName,
-                excerpt: page.blocks.map(b => b.content).join('\n').substring(0, 500) || '',
+                excerpt: formatBlocksAsMarkdown(page.blocks) || '',
                 filePath: page.path,
                 blocks: blocks,
               });
@@ -189,10 +199,11 @@ export default function ChatInterface({ onOpenSidebar }: ChatInterfaceProps) {
           const blocks = journal.blocks.map(b => ({
             content: b.content,
             id: b.id,
+            level: b.level,
           }));
           context.push({
             pageName: journal.pageName,
-            excerpt: journal.blocks.map(b => b.content).join('\n').substring(0, 500) || '',
+            excerpt: formatBlocksAsMarkdown(journal.blocks) || '',
             filePath: journal.path,
             blocks: blocks,
           });
@@ -212,7 +223,7 @@ export default function ChatInterface({ onOpenSidebar }: ChatInterfaceProps) {
           }));
           context.push({
             pageName: page.pageName,
-            excerpt: page.blocks.map(b => b.content).join('\n').substring(0, 500) || '',
+            excerpt: formatBlocksAsMarkdown(page.blocks) || '',
             filePath: page.path,
             blocks: blocks,
           });

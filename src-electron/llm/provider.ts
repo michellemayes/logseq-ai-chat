@@ -1,5 +1,5 @@
 export interface LLMProvider {
-  chat(messages: Array<{ role: string; content: string }>, context?: Array<{ pageName: string; excerpt: string; blocks?: Array<{ content: string; id?: string }> }>): Promise<string>;
+  chat(messages: Array<{ role: string; content: string }>, context?: Array<{ pageName: string; excerpt: string; blocks?: Array<{ content: string; id?: string; level?: number }> }>): Promise<string>;
 }
 
 export class GroqProvider implements LLMProvider {
@@ -13,7 +13,7 @@ export class GroqProvider implements LLMProvider {
 
   async chat(
     messages: Array<{ role: string; content: string }>,
-    context?: Array<{ pageName: string; excerpt: string; blocks?: Array<{ content: string; id?: string }> }>
+    context?: Array<{ pageName: string; excerpt: string; blocks?: Array<{ content: string; id?: string; level?: number }> }>
   ): Promise<string> {
     const today = new Date();
     const dateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
@@ -25,6 +25,13 @@ IMPORTANT: You have DIRECT ACCESS to the user's LogSeq graph. You can read any p
 
 When you reference content from LogSeq, cite the source page or block clearly.
 Format citations as: [[Page Name]] or ((block-id))
+
+When displaying journal or page contents to users, format them as markdown code blocks with proper indentation:
+\`\`\`markdown
+- Top level bullet
+  - Nested bullet
+    - Deeper nested bullet
+\`\`\`
 
 CRITICAL: When users request to create, update, or add content to journal entries or pages, you MUST ACTUALLY PERFORM THE OPERATION - NEVER say "simulated", "would look like", or "I'll simulate". The system will automatically execute file operations when you provide the LOGSEQ_ACTION command.
 
@@ -72,13 +79,17 @@ KEY RULES:
         console.log('[llm/provider] Adding context item:', item.pageName, 'blocks:', item.blocks?.length || 0);
         contextContent += `\n[[${item.pageName}]]\n`;
         if (item.blocks && item.blocks.length > 0) {
-          // Include ALL blocks for full page/journal content
+          // Include ALL blocks for full page/journal content, formatted as markdown
+          contextContent += '```markdown\n';
           item.blocks.forEach((block, idx) => {
             const content = block.content || '';
-            console.log(`[llm/provider] Adding block ${idx}: content='${content}' (length=${content.length})`);
-            // Always include the block content, even if empty (empty bullets are valid in LogSeq)
-            contextContent += `${content || '(empty block)'}\n`;
+            const level = block.level || 0;
+            console.log(`[llm/provider] Adding block ${idx}: level=${level}, content='${content}' (length=${content.length})`);
+            // Format blocks with proper indentation
+            const indent = '  '.repeat(level);
+            contextContent += `${indent}- ${content || '(empty block)'}\n`;
           });
+          contextContent += '```\n';
         } else if (item.excerpt) {
           // Fallback to excerpt if no blocks
           console.log('[llm/provider] Using excerpt:', item.excerpt.substring(0, 100));
@@ -124,7 +135,7 @@ KEY RULES:
 export async function chatWithLLM(
   provider: 'groq',
   messages: Array<{ role: string; content: string }>,
-  context?: Array<{ pageName: string; excerpt: string; blocks?: Array<{ content: string; id?: string }> }>
+  context?: Array<{ pageName: string; excerpt: string; blocks?: Array<{ content: string; id?: string; level?: number }> }>
 ): Promise<string> {
   const { getSettings } = await import('../store/settings');
   const settings = getSettings();

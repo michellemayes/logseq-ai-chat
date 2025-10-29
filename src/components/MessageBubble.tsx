@@ -75,7 +75,11 @@ export default function MessageBubble({ message }: MessageBubbleProps) {
               >
                 {citation.pageName}
               </div>
-              <div className="citation-excerpt">{citation.excerpt}</div>
+              <div className="citation-excerpt">
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                  {citation.excerpt}
+                </ReactMarkdown>
+              </div>
             </div>
           ))}
         </div>

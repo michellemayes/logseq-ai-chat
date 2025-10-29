@@ -32,7 +32,7 @@ export interface ElectronAPI {
   writeFile: (path: string, content: string) => Promise<void>;
   watchDirectory: (path: string) => Promise<void>;
   onFileChange: (callback: (data: { event: string; filePath: string }) => void) => void;
-  chat: (messages: Array<{ role: string; content: string }>, context: Array<{ pageName: string; excerpt: string; blocks?: Array<{ content: string; id?: string }> }> | undefined) => Promise<string>;
+  chat: (messages: Array<{ role: string; content: string }>, context: Array<{ pageName: string; excerpt: string; blocks?: Array<{ content: string; id?: string; level?: number }> }> | undefined) => Promise<string>;
   search: (query: string) => Promise<Array<{ pageName: string; score: number; excerpt: string; blocks: Array<{ content: string; id?: string }> }>>;
   getPage: (pageName: string) => Promise<PageContent | null>;
   getJournal: (dateStr: string) => Promise<PageContent | null>;
