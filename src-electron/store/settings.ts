@@ -1,5 +1,5 @@
 import Store from 'electron-store';
-import { Settings } from '../types';
+import { Settings, ContextSettings } from '../types';
 
 const defaultSettings: Settings = {
   logseqPath: '',
@@ -8,6 +8,20 @@ const defaultSettings: Settings = {
   provider: 'groq',
   theme: 'system',
 };
+
+export const defaultContextSettings: ContextSettings = {
+  maxPages: 5,
+  maxBlocksPerPage: 50,
+  maxTotalBlocks: 100,
+  searchResultLimit: 5,
+  relevanceThreshold: 1,
+  includeBlocks: 'all',
+};
+
+export function getContextSettings(): ContextSettings {
+  const settings = getSettings();
+  return settings.contextSettings || defaultContextSettings;
+}
 
 // Deprecated models and their replacements per https://console.groq.com/docs/deprecations
 const deprecatedModelMap: Record<string, string> = {

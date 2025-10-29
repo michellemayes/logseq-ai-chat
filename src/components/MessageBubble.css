@@ -149,6 +149,52 @@
   line-height: 1.4;
 }
 
+.citation-excerpt ul,
+.citation-excerpt ol {
+  margin: 0.25em 0;
+  padding-left: 1.5em;
+}
+
+.citation-excerpt ul ul,
+.citation-excerpt ol ol,
+.citation-excerpt ul ol,
+.citation-excerpt ol ul {
+  margin: 0.1em 0;
+  padding-left: 1.25em;
+}
+
+.citation-excerpt li {
+  margin: 0.1em 0;
+  padding-left: 0.25em;
+  list-style-position: outside;
+}
+
+.citation-excerpt p {
+  margin: 0.25em 0;
+}
+
+.citation-excerpt code {
+  background: rgba(0, 0, 0, 0.1);
+  padding: 0.15em 0.3em;
+  border-radius: 3px;
+  font-size: 0.9em;
+  font-family: 'Courier New', monospace;
+}
+
+.citation-excerpt pre {
+  background: rgba(0, 0, 0, 0.05);
+  padding: 0.5em;
+  border-radius: 4px;
+  overflow-x: auto;
+  margin: 0.25em 0;
+  font-size: 0.9em;
+}
+
+.citation-excerpt pre code {
+  background: none;
+  padding: 0;
+}
+
 /* Warning bubble (top-right) */
 .warning-bubble {
   position: absolute;

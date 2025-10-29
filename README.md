@@ -65,6 +65,24 @@ This starts both the Electron main process and the React development server.
 6. Select your preferred model
 7. Click "Save Settings"
 
+### Context Configuration
+
+The app includes intelligent context filtering to control how much content is included in AI responses. Configure these settings in the Settings panel under "Context Settings":
+
+- **Max Pages**: Maximum number of pages to include in context (default: 5)
+- **Max Blocks Per Page**: Maximum blocks to include per page (default: 50)
+- **Max Total Blocks**: Maximum total blocks across all context (default: 100)
+- **Search Result Limit**: Maximum search results to include (default: 5)
+- **Relevance Threshold**: Minimum relevance score to include results (default: 1)
+- **Block Filtering Mode**: 
+  - `all`: Include all blocks from matched pages
+  - `matched`: Only include blocks containing query keywords
+  - `top`: Include only top-scoring blocks by relevance
+- **Exclude Namespaces**: Comma-separated list of namespaces to exclude (e.g., "archive, templates")
+- **Date Range (days)**: Only include journals within this many days (leave empty for all journals)
+
+These settings help balance token usage, cost, and response quality. Use stricter limits for faster responses and lower costs, or relax them for more comprehensive context.
+
 ## Usage
 
 ### Basic Chat

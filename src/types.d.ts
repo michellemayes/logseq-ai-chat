@@ -19,12 +19,24 @@ export interface ElectronAPI {
   appendToPage: (pageName: string, content: string) => Promise<string>;
 }
 
+export interface ContextSettings {
+  maxPages?: number;
+  maxBlocksPerPage?: number;
+  maxTotalBlocks?: number;
+  searchResultLimit?: number;
+  relevanceThreshold?: number;
+  includeBlocks?: 'all' | 'matched' | 'top';
+  excludeNamespaces?: string[];
+  dateRangeDays?: number;
+}
+
 export interface Settings {
   logseqPath: string;
   apiKey: string;
   model: string;
   provider: 'groq';
   theme: 'light' | 'dark' | 'system';
+  contextSettings?: ContextSettings;
 }
 
 export interface SearchResult {

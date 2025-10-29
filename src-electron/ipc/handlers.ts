@@ -1,5 +1,5 @@
 import { ipcMain, dialog, shell } from 'electron';
-import { getSettings, setSettings } from '../store/settings';
+import { getSettings, setSettings, getContextSettings } from '../store/settings';
 import { Settings } from '../types';
 import { scanLogSeqDirectory, readMarkdownFile, writeMarkdownFile, parseMarkdown } from '../filesystem/scanner';
 import { watchLogSeqDirectory } from '../filesystem/watcher';
@@ -84,7 +84,11 @@ export function setupIpcHandlers() {
 
   // Search
   ipcMain.handle('search', async (_event, query: string) => {
-    return searchGraph(query);
+    const contextSettings = getContextSettings();
+    return searchGraph(query, {
+      relevanceThreshold: contextSettings.relevanceThreshold,
+      searchResultLimit: contextSettings.searchResultLimit,
+    });
   });
 
   // Graph queries

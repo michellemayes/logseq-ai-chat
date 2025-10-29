@@ -7,10 +7,12 @@ export interface SearchResult {
   blocks: Array<{ content: string; id?: string }>;
 }
 
-export function searchGraph(query: string): SearchResult[] {
+export function searchGraph(query: string, options?: { relevanceThreshold?: number; searchResultLimit?: number }): SearchResult[] {
   const index = getIndex();
   const queryWords = query.toLowerCase().split(/\s+/).filter((w) => w.length > 2);
   const results: SearchResult[] = [];
+  const threshold = options?.relevanceThreshold ?? 0;
+  const limit = options?.searchResultLimit ?? 10;
 
   for (const [pageName, page] of index.pages.entries()) {
     let score = 0;
@@ -41,7 +43,7 @@ export function searchGraph(query: string): SearchResult[] {
       }
     }
 
-    if (score > 0) {
+    if (score > threshold) {
       results.push({
         pageName,
         score,
@@ -51,7 +53,23 @@ export function searchGraph(query: string): SearchResult[] {
     }
   }
 
-  return results.sort((a, b) => b.score - a.score).slice(0, 10);
+  return results.sort((a, b) => b.score - a.score).slice(0, limit);
+}
+
+export function scoreBlockRelevance(block: { content: string }, query: string): number {
+  const queryWords = query.toLowerCase().split(/\s+/).filter((w) => w.length > 2);
+  const blockContent = block.content.toLowerCase();
+  let score = 0;
+  
+  for (const word of queryWords) {
+    if (blockContent.includes(word)) {
+      // Count occurrences for higher score
+      const matches = (blockContent.match(new RegExp(word, 'g')) || []).length;
+      score += matches;
+    }
+  }
+  
+  return score;
 }
 
 export function getBacklinks(pageName: string): string[] {
