@@ -13,7 +13,7 @@
   --text-primary: #1a1a1a;
   --text-secondary: #666666;
   --border: #e0e0e0;
-  --accent: #4a90e2;
+  --accent: #6B4E71;
 }
 
 [data-theme='dark'] {
@@ -22,6 +22,6 @@
   --text-primary: #e0e0e0;
   --text-secondary: #999999;
   --border: #404040;
-  --accent: #5aa0f2;
+  --accent: #8B6F8F;
 }
 
