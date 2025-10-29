@@ -18,6 +18,7 @@ import {
   setActiveConversationId,
   searchConversations,
   clearAllConversations,
+  updateConversationTitle,
 } from '../store/conversations';
 import { Conversation } from '../types';
 
@@ -479,6 +480,10 @@ export function setupIpcHandlers() {
 
   ipcMain.handle('clear-all-conversations', async () => {
     clearAllConversations();
+  });
+
+  ipcMain.handle('update-conversation-title', async (_event, id: string, title: string) => {
+    updateConversationTitle(id, title);
   });
 }
 

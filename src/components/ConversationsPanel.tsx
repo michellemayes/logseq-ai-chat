@@ -64,6 +64,8 @@ export default function ConversationsPanel({ isOpen, onClose, onSelectConversati
 
   const handleNewConversation = async () => {
     try {
+      // Clear search query when creating new conversation
+      setSearchQuery('');
       const conv = await window.electronAPI.createConversation('New Conversation');
       await loadConversations();
       await handleSelectConversation(conv.id);
@@ -84,6 +86,20 @@ export default function ConversationsPanel({ isOpen, onClose, onSelectConversati
       }
     } else {
       await loadConversations();
+    }
+  };
+
+  const handleRenameConversation = async (id: string, newTitle: string) => {
+    try {
+      await window.electronAPI.updateConversationTitle(id, newTitle);
+      await loadConversations();
+      // If there's a search query, re-apply it
+      if (searchQuery.trim()) {
+        await handleSearch(searchQuery);
+      }
+    } catch (error) {
+      console.error('Failed to rename conversation:', error);
+      alert(`Failed to rename conversation: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   };
 
@@ -113,6 +129,7 @@ export default function ConversationsPanel({ isOpen, onClose, onSelectConversati
             onSelectConversation={handleSelectConversation}
             onDeleteConversation={handleDeleteConversation}
             onNewConversation={handleNewConversation}
+            onRenameConversation={handleRenameConversation}
             searchQuery={searchQuery}
           />
         </div>

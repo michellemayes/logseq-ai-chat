@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { ConversationMetadata } from '../types';
 import './ConversationList.css';
 
@@ -7,6 +8,7 @@ interface ConversationListProps {
   onSelectConversation: (id: string) => void;
   onDeleteConversation: (id: string) => void;
   onNewConversation: () => void;
+  onRenameConversation?: (id: string, newTitle: string) => void;
   searchQuery?: string;
 }
 
@@ -16,8 +18,11 @@ export default function ConversationList({
   onSelectConversation,
   onDeleteConversation,
   onNewConversation,
+  onRenameConversation,
   searchQuery = '',
 }: ConversationListProps) {
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editTitle, setEditTitle] = useState('');
   const formatDate = (timestamp: number) => {
     const date = new Date(timestamp);
     const now = new Date();
@@ -42,6 +47,32 @@ export default function ConversationList({
       )
     : conversations;
 
+  const handleStartEdit = (conv: ConversationMetadata) => {
+    setEditingId(conv.id);
+    setEditTitle(conv.title);
+  };
+
+  const handleSaveEdit = async (id: string) => {
+    if (editTitle.trim() && onRenameConversation) {
+      await onRenameConversation(id, editTitle.trim());
+    }
+    setEditingId(null);
+    setEditTitle('');
+  };
+
+  const handleCancelEdit = () => {
+    setEditingId(null);
+    setEditTitle('');
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent, id: string) => {
+    if (e.key === 'Enter') {
+      handleSaveEdit(id);
+    } else if (e.key === 'Escape') {
+      handleCancelEdit();
+    }
+  };
+
   return (
     <div className="conversation-list">
       <div className="conversation-list-header">
@@ -59,10 +90,32 @@ export default function ConversationList({
             <div
               key={conv.id}
               className={`conversation-item ${activeConversationId === conv.id ? 'active' : ''}`}
-              onClick={() => onSelectConversation(conv.id)}
+              onClick={() => !editingId && onSelectConversation(conv.id)}
             >
               <div className="conversation-item-header">
-                <div className="conversation-title">{conv.title}</div>
+                {editingId === conv.id ? (
+                  <input
+                    type="text"
+                    value={editTitle}
+                    onChange={(e) => setEditTitle(e.target.value)}
+                    onBlur={() => handleSaveEdit(conv.id)}
+                    onKeyDown={(e) => handleKeyDown(e, conv.id)}
+                    className="conversation-title-input"
+                    autoFocus
+                    onClick={(e) => e.stopPropagation()}
+                  />
+                ) : (
+                  <div 
+                    className="conversation-title"
+                    onDoubleClick={(e) => {
+                      e.stopPropagation();
+                      handleStartEdit(conv);
+                    }}
+                    title="Double-click to rename"
+                  >
+                    {conv.title}
+                  </div>
+                )}
                 <button
                   className="conversation-delete-button"
                   onClick={(e) => {

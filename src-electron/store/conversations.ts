@@ -114,6 +114,17 @@ export function searchConversations(query: string): ConversationMetadata[] {
     .sort((a, b) => b.updatedAt - a.updatedAt);
 }
 
+export function updateConversationTitle(id: string, title: string): void {
+  const conversations = conversationStore.get('conversations') || {};
+  const conversation = conversations[id];
+  if (conversation) {
+    conversation.title = title;
+    conversation.updatedAt = Date.now();
+    conversations[id] = conversation;
+    conversationStore.set('conversations', conversations);
+  }
+}
+
 export function clearAllConversations(): void {
   conversationStore.clear();
   conversationStore.set('conversations', {});

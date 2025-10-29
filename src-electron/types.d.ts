@@ -103,6 +103,7 @@ export interface ElectronAPI {
   setActiveConversationId: (id: string | null) => Promise<void>;
   searchConversations: (query: string) => Promise<ConversationMetadata[]>;
   clearAllConversations: () => Promise<void>;
+  updateConversationTitle: (id: string, title: string) => Promise<void>;
 }
 
 declare global {

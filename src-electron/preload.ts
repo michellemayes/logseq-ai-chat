@@ -39,6 +39,7 @@ interface ElectronAPI {
   setActiveConversationId: (id: string | null) => Promise<void>;
   searchConversations: (query: string) => Promise<ConversationMetadata[]>;
   clearAllConversations: () => Promise<void>;
+  updateConversationTitle: (id: string, title: string) => Promise<void>;
 }
 
 const electronAPI: ElectronAPI = {
@@ -133,6 +134,7 @@ const electronAPI: ElectronAPI = {
   setActiveConversationId: (id: string | null) => ipcRenderer.invoke('set-active-conversation-id', id),
   searchConversations: (query: string) => ipcRenderer.invoke('search-conversations', query) as Promise<ConversationMetadata[]>,
   clearAllConversations: () => ipcRenderer.invoke('clear-all-conversations'),
+  updateConversationTitle: (id: string, title: string) => ipcRenderer.invoke('update-conversation-title', id, title),
 };
 
 contextBridge.exposeInMainWorld('electronAPI', electronAPI);
