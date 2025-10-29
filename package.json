@@ -1,0 +1,54 @@
+{
+  "name": "logseq-ai-chat",
+  "version": "0.1.0",
+  "description": "AI chat interface integrated with LogSeq",
+  "main": "dist/main.js",
+  "scripts": {
+    "dev": "concurrently --kill-others-on-fail \"npm run dev:react\" \"npm run dev:electron\"",
+    "dev:electron": "tsc -p tsconfig.electron.json && electron .",
+    "dev:react": "vite",
+    "build": "npm run build:electron && npm run build:react",
+    "build:electron": "tsc -p tsconfig.electron.json",
+    "build:react": "vite build",
+    "package": "electron-builder",
+    "lint": "eslint . --ext .ts,.tsx",
+    "type-check": "tsc --noEmit",
+    "test": "vitest",
+    "test:run": "vitest run"
+  },
+  "keywords": [
+    "logseq",
+    "electron",
+    "ai",
+    "chat"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "@types/react": "^18.2.45",
+    "@types/react-dom": "^18.2.18",
+    "@typescript-eslint/eslint-plugin": "^6.15.0",
+    "@typescript-eslint/parser": "^6.15.0",
+    "@vitejs/plugin-react": "^4.2.1",
+    "@vitest/ui": "^4.0.5",
+    "concurrently": "^8.2.2",
+    "electron": "^28.0.0",
+    "electron-builder": "^24.9.1",
+    "eslint": "^8.56.0",
+    "eslint-plugin-react": "^7.33.2",
+    "eslint-plugin-react-hooks": "^4.6.0",
+    "typescript": "^5.3.3",
+    "vite": "^5.0.8",
+    "vitest": "^4.0.5"
+  },
+  "dependencies": {
+    "chokidar": "^3.5.3",
+    "electron-store": "^8.1.0",
+    "gray-matter": "^4.0.3",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-markdown": "^10.1.0",
+    "remark-gfm": "^4.0.1"
+  }
+}

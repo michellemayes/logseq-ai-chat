@@ -1,0 +1,19 @@
+.message-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.message-list.empty {
+  justify-content: center;
+  align-items: center;
+}
+
+.empty-message {
+  color: var(--text-secondary);
+  font-size: 16px;
+}
+
