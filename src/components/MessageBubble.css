@@ -132,6 +132,16 @@
   color: var(--accent);
 }
 
+.citation-page-clickable {
+  cursor: pointer;
+  text-decoration: underline;
+  transition: opacity 0.2s;
+}
+
+.citation-page-clickable:hover {
+  opacity: 0.8;
+}
+
 .citation-excerpt {
   font-size: 12px;
   color: var(--text-secondary);

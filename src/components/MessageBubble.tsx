@@ -22,9 +22,17 @@ export default function MessageBubble({ message }: MessageBubbleProps) {
       {message.citations && message.citations.length > 0 && (
         <div className="citations">
           <div className="citations-header">Sources:</div>
-          {message.citations.map((citation: { pageName: string; excerpt: string }, idx: number) => (
+          {message.citations.map((citation: { pageName: string; excerpt: string; filePath?: string }, idx: number) => (
             <div key={idx} className="citation-card">
-              <div className="citation-page">{citation.pageName}</div>
+              <div 
+                className={`citation-page ${citation.filePath ? 'citation-page-clickable' : ''}`}
+                onClick={citation.filePath ? () => {
+                  window.electronAPI.openFile(citation.filePath!);
+                } : undefined}
+                title={citation.filePath ? `Click to open: ${citation.filePath}` : undefined}
+              >
+                {citation.pageName}
+              </div>
               <div className="citation-excerpt">{citation.excerpt}</div>
             </div>
           ))}

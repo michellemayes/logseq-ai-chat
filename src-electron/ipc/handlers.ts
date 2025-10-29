@@ -1,4 +1,4 @@
-import { ipcMain, dialog } from 'electron';
+import { ipcMain, dialog, shell } from 'electron';
 import { getSettings, setSettings } from '../store/settings';
 import { Settings } from '../types';
 import { scanLogSeqDirectory, readMarkdownFile, writeMarkdownFile, parseMarkdown } from '../filesystem/scanner';
@@ -131,6 +131,17 @@ export function setupIpcHandlers() {
     }
     
     return result;
+  });
+
+  // File operations
+  ipcMain.handle('open-file', async (_event, filePath: string) => {
+    console.log('[ipc/handlers] Opening file:', filePath);
+    try {
+      await shell.openPath(filePath);
+    } catch (error) {
+      console.error('[ipc/handlers] Failed to open file:', error);
+      throw error;
+    }
   });
 
   ipcMain.handle('get-journal', async (_event, dateStr: string) => {

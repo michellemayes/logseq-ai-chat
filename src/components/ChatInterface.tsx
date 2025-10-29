@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useSettings } from '../contexts/SettingsContext';
 import { useTheme } from '../contexts/ThemeContext';
+import { SearchResult } from '../types';
 import MessageList from './MessageList';
 import MessageInput from './MessageInput';
 import Header from './Header';
@@ -9,7 +10,7 @@ import './ChatInterface.css';
 export interface Message {
   role: 'user' | 'assistant';
   content: string;
-  citations?: Array<{ pageName: string; excerpt: string }>;
+  citations?: Array<{ pageName: string; excerpt: string; filePath?: string }>;
   action?: {
     type: 'create_journal' | 'create_page' | 'append_to_page';
     date?: string;
@@ -46,7 +47,7 @@ export default function ChatInterface({ onOpenSidebar }: ChatInterfaceProps) {
       const today = new Date();
       const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
       
-      let context: Array<{ pageName: string; excerpt: string; blocks: Array<{ content: string; id?: string }> }> = [];
+      let context: Array<{ pageName: string; excerpt: string; filePath?: string; blocks: Array<{ content: string; id?: string }> }> = [];
       
       // Check conversation history for page/journal references mentioned by AI
       const allMessages = [...messages, { role: 'user' as const, content }];
@@ -116,6 +117,7 @@ export default function ChatInterface({ onOpenSidebar }: ChatInterfaceProps) {
           context.push({
             pageName: journal.pageName,
             excerpt: journal.blocks.map(b => b.content).join('\n').substring(0, 500) || '',
+            filePath: journal.path,
             blocks: blocks,
           });
           console.log('[ChatInterface] Added journal to context:', journal.pageName, 'with', blocks.length, 'blocks');
@@ -139,6 +141,7 @@ export default function ChatInterface({ onOpenSidebar }: ChatInterfaceProps) {
             context.push({
               pageName: journal.pageName,
               excerpt: journal.blocks.map(b => b.content).join('\n').substring(0, 500) || '',
+              filePath: journal.path,
               blocks: blocks,
             });
             console.log('[ChatInterface] Added mentioned journal to context');
@@ -163,6 +166,7 @@ export default function ChatInterface({ onOpenSidebar }: ChatInterfaceProps) {
               context.push({
                 pageName: page.pageName,
                 excerpt: page.blocks.map(b => b.content).join('\n').substring(0, 500) || '',
+                filePath: page.path,
                 blocks: blocks,
               });
             }
@@ -182,6 +186,7 @@ export default function ChatInterface({ onOpenSidebar }: ChatInterfaceProps) {
           context.push({
             pageName: journal.pageName,
             excerpt: journal.blocks.map(b => b.content).join('\n').substring(0, 500) || '',
+            filePath: journal.path,
             blocks: blocks,
           });
         }
@@ -201,6 +206,7 @@ export default function ChatInterface({ onOpenSidebar }: ChatInterfaceProps) {
           context.push({
             pageName: page.pageName,
             excerpt: page.blocks.map(b => b.content).join('\n').substring(0, 500) || '',
+            filePath: page.path,
             blocks: blocks,
           });
         }
@@ -208,11 +214,19 @@ export default function ChatInterface({ onOpenSidebar }: ChatInterfaceProps) {
       
       // Also perform search for general context
       const searchResults = await window.electronAPI.search(content);
-      const searchContext = searchResults.slice(0, 5).map((r: { pageName: string; excerpt: string; blocks: Array<{ content: string; id?: string }> }) => ({
-        pageName: r.pageName,
-        excerpt: r.excerpt,
-        blocks: r.blocks,
-      }));
+      // For search results, we need to get the actual page to get the file path
+      const searchContext = await Promise.all(
+        searchResults.slice(0, 5).map(async (r: SearchResult) => {
+          // Try to get full page data to get file path
+          const pageData = await window.electronAPI.getPage(r.pageName);
+          return {
+            pageName: r.pageName,
+            excerpt: r.excerpt,
+            filePath: pageData?.path,
+            blocks: r.blocks,
+          };
+        })
+      );
       
       // Combine graph query results with search results, prioritizing graph queries
       context = [...context, ...searchContext.filter(sc => !context.find(c => c.pageName === sc.pageName))];
@@ -250,9 +264,10 @@ export default function ChatInterface({ onOpenSidebar }: ChatInterfaceProps) {
       const assistantMessage: Message = {
         role: 'assistant',
         content: displayContent,
-        citations: context.map((c: { pageName: string; excerpt: string }) => ({
+        citations: context.map((c: { pageName: string; excerpt: string; filePath?: string }) => ({
           pageName: c.pageName,
           excerpt: c.excerpt,
+          filePath: c.filePath,
         })),
         action,
       };

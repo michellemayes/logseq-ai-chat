@@ -58,11 +58,11 @@ This starts both the Electron main process and the React development server.
 ### Setting Up LogSeq Path
 
 1. Open the app
-2. Click the settings button (☰) in the header
+2. Click the settings button in the header
 3. Click "Browse" next to "LogSeq Graph Path"
 4. Select your LogSeq graph directory (typically contains `pages/`, `journals/`, and `logseq/` folders)
 5. Enter your Groq API key
-6. Select your preferred model (default: Mixtral 8x7b)
+6. Select your preferred model
 7. Click "Save Settings"
 
 ## Usage

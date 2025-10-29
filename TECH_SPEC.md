@@ -1,4 +1,4 @@
-# Build a LogSeq LLM Chat Interface
+# LogSeq AI LLM Chat Interface
 
 ## Project Overview
 Build an Electron desktop application that provides an AI chat interface integrated with LogSeq. The app should read and write to a local LogSeq graph via direct file system access, allowing users to search their knowledge base, get contextual answers, create journal entries, and manage markdown pages.
