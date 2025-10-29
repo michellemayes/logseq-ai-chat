@@ -36,6 +36,8 @@ let graphIndex: GraphIndex = {
 };
 
 export async function buildIndex(filePaths: string[], rootPath: string): Promise<void> {
+  console.log('[graph/index] buildIndex called with', filePaths.length, 'files');
+  console.log('[graph/index] rootPath:', rootPath);
   const pages = new Map<string, IndexedPage>();
   const backlinks = new Map<string, Set<string>>();
   const tags = new Map<string, Set<string>>();
@@ -50,6 +52,7 @@ export async function buildIndex(filePaths: string[], rootPath: string): Promise
       const allBlocks = getAllBlocks(blocks);
 
       const pageName = getPageName(filePath, rootPath);
+      console.log('[graph/index] Indexing file:', filePath, '-> pageName:', pageName);
       const allTags = new Set<string>();
       const allProperties: Record<string, string> = {};
 
@@ -101,6 +104,10 @@ export async function buildIndex(filePaths: string[], rootPath: string): Promise
         allProperties,
         modificationDate: stats.mtime,
       });
+      
+      if (pageName.startsWith('journals/')) {
+        console.log('[graph/index] Indexed journal:', pageName, 'blocks:', allBlocks.length);
+      }
     } catch (error) {
       console.error(`Error indexing ${filePath}:`, error);
     }
@@ -113,11 +120,29 @@ export async function buildIndex(filePaths: string[], rootPath: string): Promise
     properties,
     searchIndex,
   };
+  
+  const journalPages = Array.from(pages.keys()).filter(k => k.startsWith('journals/'));
+  console.log('[graph/index] Index build complete. Total pages:', pages.size, 'Journals:', journalPages.length);
+  console.log('[graph/index] Journal pages:', journalPages);
 }
 
 function getPageName(filePath: string, rootPath: string): string {
-  const relative = filePath.replace(rootPath, '').replace(/^\//, '');
-  const name = relative.replace(/\.md$/, '').replace(/\//g, '/');
+  // Handle cases where paths might have trailing slashes or different separators
+  const normalizedRoot = rootPath.replace(/\/$/, '').replace(/\\/g, '/');
+  const normalizedFilePath = filePath.replace(/\\/g, '/');
+  
+  // Use path.relative for better cross-platform path handling
+  const path = require('path');
+  const relative = path.relative(normalizedRoot, normalizedFilePath).replace(/\\/g, '/');
+  const name = relative.replace(/\.md$/, '');
+  
+  console.log('[graph/index] getPageName:', {
+    filePath: normalizedFilePath,
+    rootPath: normalizedRoot,
+    relative,
+    name
+  });
+  
   return name;
 }
 

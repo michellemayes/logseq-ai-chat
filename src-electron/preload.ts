@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron';
-import { ElectronAPI, Settings } from './types';
+import { ElectronAPI, Settings, PageContent } from './types';
 
 const electronAPI: ElectronAPI = {
   // Settings
@@ -21,6 +21,10 @@ const electronAPI: ElectronAPI = {
   
   // Search
   search: (query: string) => ipcRenderer.invoke('search', query),
+  
+  // Graph queries
+  getPage: (pageName: string) => ipcRenderer.invoke('get-page', pageName) as Promise<PageContent | null>,
+  getJournal: (dateStr: string) => ipcRenderer.invoke('get-journal', dateStr) as Promise<PageContent | null>,
   
   // Content creation
   createJournalEntry: (date: string, content: string) => ipcRenderer.invoke('create-journal-entry', date, content),

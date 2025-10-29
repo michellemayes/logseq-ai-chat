@@ -1,9 +1,9 @@
 import { ipcMain, dialog } from 'electron';
 import { getSettings, setSettings } from '../store/settings';
 import { Settings } from '../types';
-import { scanLogSeqDirectory, readMarkdownFile, writeMarkdownFile } from '../filesystem/scanner';
+import { scanLogSeqDirectory, readMarkdownFile, writeMarkdownFile, parseMarkdown } from '../filesystem/scanner';
 import { watchLogSeqDirectory } from '../filesystem/watcher';
-import { searchGraph } from '../graph/search';
+import { searchGraph, getPage, getJournal } from '../graph/search';
 import { chatWithLLM } from '../llm/provider';
 import { buildIndex } from '../graph/index';
 
@@ -19,7 +19,11 @@ export function setupIpcHandlers() {
     
     if (settings.logseqPath) {
       try {
+        console.log('[ipc/handlers] Building index for path:', settings.logseqPath);
         const files = await scanLogSeqDirectory(settings.logseqPath);
+        console.log('[ipc/handlers] Found', files.length, 'files');
+        const journalFiles = files.filter(f => f.includes('journals/'));
+        console.log('[ipc/handlers] Journal files:', journalFiles);
         await buildIndex(files, settings.logseqPath);
         watchLogSeqDirectory(settings.logseqPath);
       } catch (error) {
@@ -57,6 +61,81 @@ export function setupIpcHandlers() {
   // Search
   ipcMain.handle('search', async (_event, query: string) => {
     return searchGraph(query);
+  });
+
+  // Graph queries
+  ipcMain.handle('get-page', async (_event, pageName: string) => {
+    console.log('[ipc/handlers] get-page called for:', pageName);
+    let result = getPage(pageName);
+    
+    if (!result) {
+      // If not found in index, try reading file directly as fallback
+      const settings = getSettings();
+      if (settings.logseqPath) {
+        console.log('[ipc/handlers] Page not in index, trying direct file read');
+        let filePath: string;
+        if (pageName.startsWith('journals/')) {
+          const dateStr = pageName.replace('journals/', '');
+          filePath = `${settings.logseqPath}/journals/${dateStr}.md`;
+        } else {
+          const sanitized = pageName.replace(/[^\w\s-]/g, '').replace(/\s+/g, '_');
+          filePath = `${settings.logseqPath}/pages/${sanitized}.md`;
+        }
+        console.log('[ipc/handlers] Attempting to read file directly:', filePath);
+        try {
+          const content = await readMarkdownFile(filePath);
+          console.log('[ipc/handlers] Successfully read file, length:', content.length);
+          
+          // Parse and format the content directly
+          const { frontmatter, body } = parseMarkdown(content);
+          const { parseLogSeqContent, getAllBlocks } = await import('../graph/parser');
+          const blocks = parseLogSeqContent(body);
+          const allBlocks = getAllBlocks(blocks);
+          
+          result = {
+            pageName: pageName,
+            path: filePath,
+            frontmatter: frontmatter,
+            blocks: allBlocks.map(b => ({
+              id: b.id,
+              content: b.content,
+              level: b.level,
+              properties: b.properties,
+              tags: b.tags,
+              references: b.references,
+              blockRefs: b.blockRefs,
+            })),
+            allTags: Array.from(new Set(allBlocks.flatMap(b => b.tags))),
+            allProperties: Object.assign({}, ...allBlocks.map(b => b.properties)),
+          };
+          
+          console.log('[ipc/handlers] Created page content from direct read:', result.blocks.length, 'blocks');
+          
+          // Also rebuild index for future queries
+          try {
+            const files = await scanLogSeqDirectory(settings.logseqPath);
+            await buildIndex(files, settings.logseqPath);
+          } catch (indexError) {
+            console.error('[ipc/handlers] Failed to rebuild index:', indexError);
+          }
+        } catch (error) {
+          console.error('[ipc/handlers] Failed to read file directly:', error);
+        }
+      }
+    }
+    
+    if (result) {
+      console.log('[ipc/handlers] Returning page:', result.pageName, 'with', result.blocks.length, 'blocks');
+    } else {
+      console.log('[ipc/handlers] Page not found and could not read file directly');
+    }
+    
+    return result;
+  });
+
+  ipcMain.handle('get-journal', async (_event, dateStr: string) => {
+    console.log('[ipc/handlers] get-journal called for date:', dateStr);
+    return getJournal(dateStr);
   });
 
   // LLM

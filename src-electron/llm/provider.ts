@@ -20,6 +20,9 @@ export class GroqProvider implements LLMProvider {
     
     const systemPrompt = `You are an AI assistant helping users interact with their LogSeq knowledge base. 
 Current date: ${dateStr}
+
+IMPORTANT: You have DIRECT ACCESS to the user's LogSeq graph. You can read any page or journal entry from their knowledge base. When the user asks about specific pages or journal entries, the system will provide you with the full content of those pages before you respond. Never say you don't have access - you DO have access!
+
 When you reference content from LogSeq, cite the source page or block clearly.
 Format citations as: [[Page Name]] or ((block-id))
 
@@ -63,15 +66,30 @@ KEY RULES:
 
     let contextContent = '';
     if (context && Array.isArray(context) && context.length > 0) {
+      console.log('[llm/provider] Building context content from', context.length, 'items');
       contextContent = `\n\nRelevant LogSeq context:\n`;
       for (const item of context) {
-        contextContent += `\n[[${item.pageName}]]\n${item.excerpt}\n`;
+        console.log('[llm/provider] Adding context item:', item.pageName, 'blocks:', item.blocks?.length || 0);
+        contextContent += `\n[[${item.pageName}]]\n`;
         if (item.blocks && item.blocks.length > 0) {
+          // Include ALL blocks for full page/journal content
           item.blocks.forEach((block) => {
-            contextContent += `- ${block.content}\n`;
+            console.log('[llm/provider] Adding block:', block.content.substring(0, 100));
+            contextContent += `${block.content}\n`;
           });
+        } else if (item.excerpt) {
+          // Fallback to excerpt if no blocks
+          console.log('[llm/provider] Using excerpt:', item.excerpt.substring(0, 100));
+          contextContent += `${item.excerpt}\n`;
+        } else {
+          console.log('[llm/provider] WARNING: No blocks or excerpt for', item.pageName);
         }
       }
+      contextContent += `\nYou have full access to the above content. Read and respond based on the actual content provided.\n`;
+      console.log('[llm/provider] Final context content length:', contextContent.length);
+      console.log('[llm/provider] Context content preview:', contextContent.substring(0, 500));
+    } else {
+      console.log('[llm/provider] WARNING: No context provided to LLM');
     }
 
     const fullMessages = [
