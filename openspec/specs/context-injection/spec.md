@@ -4,9 +4,17 @@
 TBD - created by archiving change add-logseq-ai-chat-mvp. Update Purpose after archive.
 ## Requirements
 ### Requirement: Context Retrieval and Injection
-The system SHALL analyze a user query, search the graph, assemble relevant pages/blocks with metadata (page names, block IDs, modification dates), and send the formatted context to the LLM.
+The system SHALL analyze user queries, search the graph, assemble relevant pages/blocks with metadata (page names, block IDs, modification dates), and send the formatted context to the LLM. When queries explicitly reference a page name or journal date, the system MUST query the graph for that content before constructing the LLM context.
 
-#### Scenario: Relevant context bundled with citations
-- **WHEN** a user asks a question
-- **THEN** the system sends selected context to the LLM and displays citations
+#### Scenario: Context includes specific journal when requested
+- **WHEN** user query mentions "today's journal" or a specific date
+- **THEN** the system queries the graph for that journal entry and includes it in context
+
+#### Scenario: Context includes specific page when requested
+- **WHEN** user query mentions a page name (e.g., "[[Projects]]" or "the Projects page")
+- **THEN** the system queries the graph for that page and includes it in context
+
+#### Scenario: Graph query and search combined
+- **WHEN** user asks open-ended question about graph content
+- **THEN** the system performs search first, then queries specific pages if referenced
 

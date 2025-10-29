@@ -8,7 +8,7 @@
 - [x] 1.7 Test: Verify AI can read today's journal when asked
 
 ## 2. Validation
-- [ ] 2.1 Manual test: Ask "What's in today's journal?" - verify AI reads actual content
-- [ ] 2.2 Manual test: Ask about a specific page by name - verify AI retrieves it from graph
-- [ ] 2.3 Verify AI no longer says it doesn't have access
+- [x] 2.1 Manual test: Ask "What's in today's journal?" - verify AI reads actual content
+- [x] 2.2 Manual test: Ask about a specific page by name - verify AI retrieves it from graph
+- [x] 2.3 Verify AI no longer says it doesn't have access
 

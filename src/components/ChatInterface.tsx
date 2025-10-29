@@ -11,6 +11,7 @@ export interface Message {
   role: 'user' | 'assistant';
   content: string;
   citations?: Array<{ pageName: string; excerpt: string; filePath?: string }>;
+  noContextWarning?: boolean;
   action?: {
     type: 'create_journal' | 'create_page' | 'append_to_page';
     date?: string;
@@ -252,13 +253,7 @@ export default function ChatInterface({ onOpenSidebar }: ChatInterfaceProps) {
         context
       );
 
-      // If no context was provided to the LLM, surface a UI notice
-      if (!context || context.length === 0) {
-        setMessages((prev) => [
-          ...prev,
-          { role: 'assistant', content: 'ℹ️ No LogSeq context was available for this query. Try specifying a page/journal or rebuild the index.' },
-        ]);
-      }
+      const noContextWarning = !context || context.length === 0;
 
       // Parse response for LOGSEQ_ACTION commands
       const actionMatch = response.match(/<LOGSEQ_ACTION>([\s\S]*?)<\/LOGSEQ_ACTION>/);
@@ -282,6 +277,7 @@ export default function ChatInterface({ onOpenSidebar }: ChatInterfaceProps) {
           excerpt: c.excerpt,
           filePath: c.filePath,
         })),
+        noContextWarning,
         action,
       };
 

@@ -10,6 +10,14 @@ interface MessageBubbleProps {
 export default function MessageBubble({ message }: MessageBubbleProps) {
   return (
     <div className={`message-bubble ${message.role}`}>
+      {message.noContextWarning && (
+        <div className="warning-bubble" aria-label="No LogSeq context">
+          !
+          <div className="warning-tooltip">
+            ℹ️ No LogSeq context was available for this query. Try specifying a page/journal or rebuild the index.
+          </div>
+        </div>
+      )}
       <div className="message-content">
         {message.role === 'assistant' ? (
           <ReactMarkdown remarkPlugins={[remarkGfm]}>
