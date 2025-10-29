@@ -30,6 +30,7 @@ export default function ChatInterface({ onOpenSidebar }: ChatInterfaceProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const lastActionKeyRef = useRef<string | null>(null);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -255,17 +256,54 @@ export default function ChatInterface({ onOpenSidebar }: ChatInterfaceProps) {
 
       const noContextWarning = !context || context.length === 0;
 
-      // Parse response for LOGSEQ_ACTION commands
-      const actionMatch = response.match(/<LOGSEQ_ACTION>([\s\S]*?)<\/LOGSEQ_ACTION>/);
-      let action = undefined;
+      // Parse response for LOGSEQ_ACTION commands (robust parsing)
+      let action: { type?: 'create_journal' | 'create_page' | 'append_to_page'; action?: string; date?: string; pageName?: string; content: string } | undefined;
       let displayContent = response;
 
-      if (actionMatch) {
+      const tagMatch = response.match(/<LOGSEQ_ACTION>([\s\S]*?)<\/LOGSEQ_ACTION>/);
+      const fencedMatch = response.match(/```(?:json|JSON)?[\r\n]+([\s\S]*?)```/);
+      const jsonLikeMatch = response.match(/\{[\s\S]*\}/);
+
+      const tryParse = (raw: string | undefined) => {
+        if (!raw) return undefined;
         try {
-          action = JSON.parse(actionMatch[1]);
-          displayContent = response.replace(/<LOGSEQ_ACTION>[\s\S]*?<\/LOGSEQ_ACTION>/, '').trim();
-        } catch (e) {
-          console.error('Failed to parse action:', e);
+          return JSON.parse(raw.trim());
+        } catch {
+          return undefined;
+        }
+      };
+
+      action = tryParse(tagMatch?.[1]) || tryParse(fencedMatch?.[1]) || tryParse(jsonLikeMatch?.[0]);
+      // Normalize possible 'action' property into 'type'
+      if (action && !action.type && action.action) {
+        action.type = action.action as any;
+      }
+      if (action && tagMatch) {
+        displayContent = response.replace(/<LOGSEQ_ACTION>[\s\S]*?<\/LOGSEQ_ACTION>/, '').trim();
+      }
+
+      // Heuristic fallback: infer action when LLM forgot to include LOGSEQ_ACTION
+      if (!action) {
+        const today = new Date();
+        const todayISO = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+        const todayJournal = `journals/${todayISO.replace(/-/g, '_')}`;
+
+        const wantsAppendToday = /(add|append|update).*(today'?s|today)/i.test(content) || /journal.*(add|append|update)/i.test(content);
+        const createPageMatch = content.match(/create\s+(?:a\s+)?page\s+(?:called\s+)?"?\[?\[?([^\]\"]+?)\]?\]?"?/i);
+        const appendToPageMatch = content.match(/add|append.*to\s+(?:the\s+)?"?\[?\[?([^\]\"]+?)\]?\]?"?\s+page/i);
+
+        if (wantsAppendToday) {
+          action = { action: 'append_to_page', pageName: todayJournal, content: `\n- ${content}` };
+        } else if (createPageMatch && createPageMatch[1]) {
+          action = { action: 'create_page', pageName: createPageMatch[1].trim(), content };
+        } else if (appendToPageMatch && appendToPageMatch[1]) {
+          action = { action: 'append_to_page', pageName: appendToPageMatch[1].trim(), content: `\n- ${content}` };
+        }
+
+        if (action) {
+          console.log('[ChatInterface] Inferred action due to missing LOGSEQ_ACTION:', action);
+        } else {
+          console.log('[ChatInterface] No LOGSEQ_ACTION found and could not infer action.');
         }
       }
 
@@ -278,7 +316,12 @@ export default function ChatInterface({ onOpenSidebar }: ChatInterfaceProps) {
           filePath: c.filePath,
         })),
         noContextWarning,
-        action,
+        action: action && action.type ? {
+          type: action.type,
+          date: action.date,
+          pageName: action.pageName,
+          content: action.content,
+        } : undefined,
       };
 
       setMessages((prev) => [...prev, assistantMessage]);
@@ -286,28 +329,63 @@ export default function ChatInterface({ onOpenSidebar }: ChatInterfaceProps) {
       // Auto-execute file operations
       if (action && settings.logseqPath) {
         try {
+          const actionKey = `${action.type}|${action.pageName || ''}|${action.date || ''}|${(action.content || '').trim()}`;
+          if (lastActionKeyRef.current === actionKey) {
+            console.log('[ChatInterface] Skipping duplicate action execution:', actionKey);
+            return;
+          }
+
+          // Policy: if no LogSeq context, do not update existing files; only allow creating pages with explicit approval.
+          if (noContextWarning) {
+            if (action.type === 'create_page' && action.pageName) {
+              const ok = window.confirm(`No LogSeq context detected. Create new page "${action.pageName}"?`);
+              if (!ok) {
+                console.log('[ChatInterface] User declined create_page without context');
+                return;
+              }
+            } else {
+              console.log('[ChatInterface] Blocking file update without context. Action:', action.type);
+              setMessages((prev) => [
+                ...prev,
+                { role: 'assistant', content: 'ℹ️ No LogSeq context available — not updating existing files. Please reference a page/journal or rebuild the index. You may create a new page instead.' }
+              ]);
+              return;
+            }
+          }
+
           if (action.type === 'create_journal' && action.date) {
+            console.log('[ChatInterface] Executing create_journal for date:', action.date, 'content length:', action.content?.length || 0);
             const filePath = await window.electronAPI.createJournalEntry(action.date, action.content);
             // Update message with success indicator
             setMessages((prev) => {
               const updated = [...prev];
               const lastMsg = updated[updated.length - 1];
               if (lastMsg && lastMsg.role === 'assistant') {
-                lastMsg.content += `\n\n✅ Journal entry saved to: ${filePath.split('/').pop()}`;
+                const marker = '✅ Journal entry saved to:';
+                if (!lastMsg.content.includes(marker)) {
+                  lastMsg.content += `\n\n${marker} ${filePath.split('/').pop()}`;
+                }
               }
               return updated;
             });
+            lastActionKeyRef.current = actionKey;
           } else if (action.type === 'create_page' && action.pageName) {
+            console.log('[ChatInterface] Executing create_page for:', action.pageName, 'content length:', action.content?.length || 0);
             const filePath = await window.electronAPI.createPage(action.pageName, action.content);
             setMessages((prev) => {
               const updated = [...prev];
               const lastMsg = updated[updated.length - 1];
               if (lastMsg && lastMsg.role === 'assistant') {
-                lastMsg.content += `\n\n✅ Page saved to: ${filePath.split('/').pop()}`;
+                const marker = '✅ Page saved to:';
+                if (!lastMsg.content.includes(marker)) {
+                  lastMsg.content += `\n\n${marker} ${filePath.split('/').pop()}`;
+                }
               }
               return updated;
             });
+            lastActionKeyRef.current = actionKey;
           } else if (action.type === 'append_to_page' && action.pageName) {
+            console.log('[ChatInterface] Executing append_to_page for:', action.pageName, 'content length:', action.content?.length || 0);
             const filePath = await window.electronAPI.appendToPage(action.pageName, action.content);
             setMessages((prev) => {
               const updated = [...prev];
@@ -315,10 +393,14 @@ export default function ChatInterface({ onOpenSidebar }: ChatInterfaceProps) {
               if (lastMsg && lastMsg.role === 'assistant') {
                 const fileName = filePath.split('/').pop();
                 const location = action.pageName?.includes('journals') ? 'journal' : 'page';
-                lastMsg.content += `\n\n✅ Updated ${location}: ${fileName}`;
+                const marker = `✅ Updated ${location}: ${fileName}`;
+                if (!lastMsg.content.includes(marker)) {
+                  lastMsg.content += `\n\n${marker}`;
+                }
               }
               return updated;
             });
+            lastActionKeyRef.current = actionKey;
           }
         } catch (error) {
           console.error('Failed to execute file operation:', error);

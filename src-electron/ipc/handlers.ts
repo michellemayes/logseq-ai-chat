@@ -263,20 +263,31 @@ export function setupIpcHandlers() {
     const date = new Date(dateStr);
     const dateFilename = `${date.getFullYear()}_${String(date.getMonth() + 1).padStart(2, '0')}_${String(date.getDate()).padStart(2, '0')}`;
     const journalPath = `${settings.logseqPath}/journals/${dateFilename}.md`;
+    console.log('[content/create-journal-entry] Target path:', journalPath);
     
     let existing = '';
     try {
       existing = await readMarkdownFile(journalPath);
+      console.log('[content/create-journal-entry] Existing file found, current length:', existing.length);
       if (!existing.endsWith('\n')) existing += '\n';
       if (!existing.endsWith('\n\n')) existing += '\n';
     } catch {
       // New journal entry
       const formattedDate = formatDateForJournal(date);
       existing = `# ${formattedDate}\n\n`;
+      console.log('[content/create-journal-entry] Creating new journal with header for date:', formattedDate);
     }
     
     const journalContent = existing + content;
+    console.log('[content/create-journal-entry] Appending content length:', content.length, 'New total length:', journalContent.length);
     await writeMarkdownFile(journalPath, journalContent);
+    try {
+      const { stat } = await import('fs/promises');
+      const st = await stat(journalPath);
+      console.log('[content/create-journal-entry] Write success. Final size (bytes):', st.size);
+    } catch (e) {
+      console.warn('[content/create-journal-entry] Could not stat file after write:', e);
+    }
     return journalPath;
   });
 
@@ -304,10 +315,12 @@ export function setupIpcHandlers() {
     if (pageName.startsWith('journals/')) {
       const journalDate = pageName.replace('journals/', '');
       const journalPath = `${settings.logseqPath}/journals/${journalDate}.md`;
+      console.log('[content/append] Journals branch. pageName:', pageName, '-> path:', journalPath);
       
       let existing = '';
       try {
         existing = await readMarkdownFile(journalPath);
+        console.log('[content/append] Existing journal found. Current length:', existing.length);
         if (!existing.endsWith('\n')) existing += '\n';
         if (!existing.endsWith('\n\n')) existing += '\n';
       } catch {
@@ -320,29 +333,50 @@ export function setupIpcHandlers() {
             parseInt(dateParts[2])
           );
           existing = `# ${formatDateForJournal(date)}\n\n`;
+          console.log('[content/append] Journal not found. Creating header for date:', formatDateForJournal(date));
         } else {
           existing = '';
+          console.warn('[content/append] Unexpected journal date format in pageName:', pageName);
         }
       }
       
       const updated = existing + content;
+      console.log('[content/append] Appending content length:', content.length, 'Result total length:', updated.length);
       await writeMarkdownFile(journalPath, updated);
+      try {
+        const { stat } = await import('fs/promises');
+        const st = await stat(journalPath);
+        console.log('[content/append] Write success. Final size (bytes):', st.size);
+      } catch (e) {
+        console.warn('[content/append] Could not stat journal after write:', e);
+      }
       return journalPath;
     } else {
       // Handle regular pages
       const sanitized = sanitizePageName(pageName);
       const pagePath = `${settings.logseqPath}/pages/${sanitized}.md`;
+      console.log('[content/append] Page branch. pageName:', pageName, 'sanitized:', sanitized, '-> path:', pagePath);
       
       let existing = '';
       try {
         existing = await readMarkdownFile(pagePath);
+        console.log('[content/append] Existing page found. Current length:', existing.length);
         if (!existing.endsWith('\n')) existing += '\n';
       } catch {
         // File doesn't exist yet
+        console.log('[content/append] Page does not exist. Will create new file.');
       }
       
       const updated = existing + content;
+      console.log('[content/append] Appending content length:', content.length, 'Result total length:', updated.length);
       await writeMarkdownFile(pagePath, updated);
+      try {
+        const { stat } = await import('fs/promises');
+        const st = await stat(pagePath);
+        console.log('[content/append] Write success. Final size (bytes):', st.size);
+      } catch (e) {
+        console.warn('[content/append] Could not stat page after write:', e);
+      }
       return pagePath;
     }
   });
