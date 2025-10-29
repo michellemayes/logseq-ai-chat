@@ -6,6 +6,11 @@
   background: var(--bg-secondary);
 }
 
+.header-actions {
+  display: flex;
+  gap: 8px;
+}
+
 .header-title {
   flex: 1;
   font-size: 18px;

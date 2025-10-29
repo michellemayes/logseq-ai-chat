@@ -1,4 +1,4 @@
-import { Message } from './ChatInterface';
+import { Message } from '../types';
 import MessageBubble from './MessageBubble';
 import TypingIndicator from './TypingIndicator';
 import './MessageList.css';

@@ -8,6 +8,18 @@ import { chatWithLLM } from '../llm/provider';
 import { buildIndex } from '../graph/index';
 import { getIndex } from '../graph/index';
 import { GroqProvider } from '../llm/provider';
+import {
+  createConversation,
+  getConversation,
+  getConversationMetadata,
+  saveConversation,
+  deleteConversation,
+  getActiveConversationId,
+  setActiveConversationId,
+  searchConversations,
+  clearAllConversations,
+} from '../store/conversations';
+import { Conversation } from '../types';
 
 export function setupIpcHandlers() {
   // Settings
@@ -429,6 +441,44 @@ export function setupIpcHandlers() {
       }
       return pagePath;
     }
+  });
+
+  // Conversations
+  ipcMain.handle('get-conversations', async () => {
+    return getConversationMetadata();
+  });
+
+  ipcMain.handle('get-conversation', async (_event, id: string) => {
+    return getConversation(id);
+  });
+
+  ipcMain.handle('create-conversation', async (_event, title: string) => {
+    return createConversation(title);
+  });
+
+  ipcMain.handle('save-conversation', async (_event, conversation: Conversation) => {
+    saveConversation(conversation);
+    return conversation;
+  });
+
+  ipcMain.handle('delete-conversation', async (_event, id: string) => {
+    deleteConversation(id);
+  });
+
+  ipcMain.handle('get-active-conversation-id', async () => {
+    return getActiveConversationId();
+  });
+
+  ipcMain.handle('set-active-conversation-id', async (_event, id: string | null) => {
+    setActiveConversationId(id);
+  });
+
+  ipcMain.handle('search-conversations', async (_event, query: string) => {
+    return searchConversations(query);
+  });
+
+  ipcMain.handle('clear-all-conversations', async () => {
+    clearAllConversations();
   });
 }
 

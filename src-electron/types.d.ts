@@ -9,6 +9,36 @@ export interface ContextSettings {
   dateRangeDays?: number;
 }
 
+export interface Message {
+  role: 'user' | 'assistant';
+  content: string;
+  citations?: Array<{ pageName: string; excerpt: string; filePath?: string }>;
+  noContextWarning?: boolean;
+  action?: {
+    type: 'create_journal' | 'create_page' | 'append_to_page';
+    date?: string;
+    pageName?: string;
+    content: string;
+  };
+}
+
+export interface Conversation {
+  id: string;
+  title: string;
+  createdAt: number;
+  updatedAt: number;
+  messages: Message[];
+}
+
+export interface ConversationMetadata {
+  id: string;
+  title: string;
+  createdAt: number;
+  updatedAt: number;
+  messageCount: number;
+  lastMessagePreview?: string;
+}
+
 export interface Settings {
   logseqPath: string;
   apiKey: string;
@@ -63,6 +93,16 @@ export interface ElectronAPI {
   createJournalEntry: (date: string, content: string) => Promise<string>;
   createPage: (pageName: string, content: string) => Promise<string>;
   appendToPage: (pageName: string, content: string) => Promise<string>;
+  // Conversations
+  getConversations: () => Promise<ConversationMetadata[]>;
+  getConversation: (id: string) => Promise<Conversation | null>;
+  createConversation: (title: string) => Promise<Conversation>;
+  saveConversation: (conversation: Conversation) => Promise<Conversation>;
+  deleteConversation: (id: string) => Promise<void>;
+  getActiveConversationId: () => Promise<string | null>;
+  setActiveConversationId: (id: string | null) => Promise<void>;
+  searchConversations: (query: string) => Promise<ConversationMetadata[]>;
+  clearAllConversations: () => Promise<void>;
 }
 
 declare global {

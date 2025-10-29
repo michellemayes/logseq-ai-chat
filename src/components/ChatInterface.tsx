@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { useSettings } from '../contexts/SettingsContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { 
@@ -11,43 +11,108 @@ import {
 import MessageList from './MessageList';
 import MessageInput from './MessageInput';
 import Header from './Header';
+import { Conversation, Message } from '../types';
 import './ChatInterface.css';
-
-export interface Message {
-  role: 'user' | 'assistant';
-  content: string;
-  citations?: Array<{ pageName: string; excerpt: string; filePath?: string }>;
-  noContextWarning?: boolean;
-  action?: {
-    type: 'create_journal' | 'create_page' | 'append_to_page';
-    date?: string;
-    pageName?: string;
-    content: string;
-  };
-}
 
 interface ChatInterfaceProps {
   onOpenSidebar: () => void;
+  onOpenConversations: () => void;
+  conversationId?: string | null;
+  onConversationChange?: (id: string | null) => void;
 }
 
-export default function ChatInterface({ onOpenSidebar }: ChatInterfaceProps) {
+export default function ChatInterface({ onOpenSidebar, onOpenConversations, conversationId, onConversationChange }: ChatInterfaceProps) {
   const { settings } = useSettings();
   const { theme, toggleTheme } = useTheme();
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(false);
   const [isStreaming, setIsStreaming] = useState(false);
   const [streamingContent, setStreamingContent] = useState('');
+  const [currentConversationId, setCurrentConversationId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const lastActionKeyRef = useRef<string | null>(null);
+  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, streamingContent]);
 
-  // Ensure index is built on mount (so search works without re-saving settings)
+  // Load conversation on mount or when conversationId changes
   useEffect(() => {
-    window.electronAPI.rebuildIndex?.().catch(() => {});
-  }, []);
+    const loadConversation = async () => {
+      if (conversationId) {
+        try {
+          const conv = await window.electronAPI.getConversation(conversationId);
+          if (conv) {
+            setMessages(conv.messages);
+            setCurrentConversationId(conv.id);
+          }
+        } catch (error) {
+          console.error('Failed to load conversation:', error);
+        }
+      } else {
+        // Load last active conversation on mount
+        try {
+          const activeId = await window.electronAPI.getActiveConversationId();
+          if (activeId) {
+            const conv = await window.electronAPI.getConversation(activeId);
+            if (conv) {
+              setMessages(conv.messages);
+              setCurrentConversationId(conv.id);
+              if (onConversationChange) {
+                onConversationChange(conv.id);
+              }
+            }
+          }
+        } catch (error) {
+          console.error('Failed to load active conversation:', error);
+        }
+      }
+    };
+    loadConversation();
+  }, [conversationId, onConversationChange]);
+
+  // Auto-save conversation with debouncing
+  const saveConversation = useCallback(async (conversationMessages: Message[], conversationTitle?: string) => {
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+    }
+
+    saveTimeoutRef.current = setTimeout(async () => {
+      try {
+        let convId = currentConversationId;
+        let title = conversationTitle;
+
+        if (!convId) {
+          // Create new conversation if none exists
+          title = title || conversationMessages[0]?.content.substring(0, 50) || 'New Conversation';
+          const newConv = await window.electronAPI.createConversation(title);
+          convId = newConv.id;
+          setCurrentConversationId(convId);
+          if (onConversationChange) {
+            onConversationChange(convId);
+          }
+        }
+
+        const conv: Conversation = {
+          id: convId!,
+          title: title || 'New Conversation',
+          createdAt: Date.now(),
+          updatedAt: Date.now(),
+          messages: conversationMessages,
+        };
+
+        // Update title if this is the first user message
+        if (conversationMessages.length > 0 && conversationMessages[0].role === 'user' && !title) {
+          conv.title = conversationMessages[0].content.substring(0, 50);
+        }
+
+        await window.electronAPI.saveConversation(conv);
+      } catch (error) {
+        console.error('Failed to save conversation:', error);
+      }
+    }, 500); // 500ms debounce
+  }, [currentConversationId, onConversationChange]);
 
   const handleSend = async (content: string) => {
     if (!content.trim() || !settings.apiKey || !settings.logseqPath) {
@@ -489,6 +554,15 @@ export default function ChatInterface({ onOpenSidebar }: ChatInterfaceProps) {
             }
             
             setLoading(false);
+            
+            // Auto-save conversation after response completes
+            setMessages((prevMsgs) => {
+              const finalMessages = [...prevMsgs];
+              saveConversation(finalMessages).catch(err => {
+                console.error('Failed to save conversation:', err);
+              });
+              return finalMessages;
+            });
           },
           onError: (error: string) => {
             setIsStreaming(false);
@@ -515,9 +589,23 @@ export default function ChatInterface({ onOpenSidebar }: ChatInterfaceProps) {
     }
   };
 
+  // Cleanup save timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  // Ensure index is built on mount (so search works without re-saving settings)
+  useEffect(() => {
+    window.electronAPI.rebuildIndex?.().catch(() => {});
+  }, []);
+
   return (
     <div className="chat-interface">
-      <Header onOpenSidebar={onOpenSidebar} onToggleTheme={toggleTheme} theme={theme} />
+      <Header onOpenSidebar={onOpenSidebar} onOpenConversations={onOpenConversations} onToggleTheme={toggleTheme} theme={theme} />
       <MessageList messages={messages} loading={loading || isStreaming} endRef={messagesEndRef} />
       <MessageInput onSend={handleSend} disabled={loading || !settings.apiKey || !settings.logseqPath} />
     </div>

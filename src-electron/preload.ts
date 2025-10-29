@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron';
-import { Settings, PageContent } from './types';
+import { Settings, PageContent, Conversation, ConversationMetadata } from './types';
 
 interface ElectronAPI {
   getSettings: () => Promise<Settings>;
@@ -29,6 +29,16 @@ interface ElectronAPI {
   createJournalEntry: (date: string, content: string) => Promise<string>;
   createPage: (pageName: string, content: string) => Promise<string>;
   appendToPage: (pageName: string, content: string) => Promise<string>;
+  // Conversations
+  getConversations: () => Promise<ConversationMetadata[]>;
+  getConversation: (id: string) => Promise<Conversation | null>;
+  createConversation: (title: string) => Promise<Conversation>;
+  saveConversation: (conversation: Conversation) => Promise<Conversation>;
+  deleteConversation: (id: string) => Promise<void>;
+  getActiveConversationId: () => Promise<string | null>;
+  setActiveConversationId: (id: string | null) => Promise<void>;
+  searchConversations: (query: string) => Promise<ConversationMetadata[]>;
+  clearAllConversations: () => Promise<void>;
 }
 
 const electronAPI: ElectronAPI = {
@@ -112,6 +122,17 @@ const electronAPI: ElectronAPI = {
   createJournalEntry: (date: string, content: string) => ipcRenderer.invoke('create-journal-entry', date, content),
   createPage: (pageName: string, content: string) => ipcRenderer.invoke('create-page', pageName, content),
   appendToPage: (pageName: string, content: string) => ipcRenderer.invoke('append-to-page', pageName, content),
+  
+  // Conversations
+  getConversations: () => ipcRenderer.invoke('get-conversations') as Promise<ConversationMetadata[]>,
+  getConversation: (id: string) => ipcRenderer.invoke('get-conversation', id) as Promise<Conversation | null>,
+  createConversation: (title: string) => ipcRenderer.invoke('create-conversation', title) as Promise<Conversation>,
+  saveConversation: (conversation: Conversation) => ipcRenderer.invoke('save-conversation', conversation) as Promise<Conversation>,
+  deleteConversation: (id: string) => ipcRenderer.invoke('delete-conversation', id),
+  getActiveConversationId: () => ipcRenderer.invoke('get-active-conversation-id') as Promise<string | null>,
+  setActiveConversationId: (id: string | null) => ipcRenderer.invoke('set-active-conversation-id', id),
+  searchConversations: (query: string) => ipcRenderer.invoke('search-conversations', query) as Promise<ConversationMetadata[]>,
+  clearAllConversations: () => ipcRenderer.invoke('clear-all-conversations'),
 };
 
 contextBridge.exposeInMainWorld('electronAPI', electronAPI);

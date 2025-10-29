@@ -1,14 +1,14 @@
 # Tasks: Add Conversation History & Persistence
 
 ## Phase 1: Data Model & Storage
-- [ ] 1.1 Define conversation data structures in types
+- [x] 1.1 Define conversation data structures in types
   - Conversation interface with id, title, createdAt, updatedAt, messages[]
   - Message interface matches existing Message type
-- [ ] 1.2 Create conversation store using electron-store
+- [x] 1.2 Create conversation store using electron-store
   - Store conversations in separate store from settings
   - Implement CRUD operations (create, read, update, delete)
   - Generate unique IDs for conversations
-- [ ] 1.3 Add IPC handlers for conversation operations
+- [x] 1.3 Add IPC handlers for conversation operations
   - getConversations() - list all conversations
   - getConversation(id) - get specific conversation
   - saveConversation(conversation) - create/update
@@ -16,25 +16,25 @@
   - searchConversations(query) - search conversation content
 
 ## Phase 2: UI Components
-- [ ] 2.1 Update Sidebar to show conversation list
+- [x] 2.1 Update Sidebar to show conversation list
   - Display conversation titles and timestamps
   - Show active/current conversation indicator
   - Add "New Conversation" button
-- [ ] 2.2 Add conversation list item component
+- [x] 2.2 Add conversation list item component
   - Click to resume conversation
   - Show preview/last message snippet
   - Context menu for delete/rename
-- [ ] 2.3 Update ChatInterface to manage conversation state
+- [x] 2.3 Update ChatInterface to manage conversation state
   - Load conversation on mount/selection
   - Auto-save messages as they're added
   - Generate conversation title from first user message
-- [ ] 2.4 Add conversation search UI
+- [x] 2.4 Add conversation search UI
   - Search input in sidebar
   - Filter conversations by content or date
   - Highlight search matches
 
 ## Phase 3: Conversation Management
-- [ ] 3.1 Implement conversation deletion
+- [x] 3.1 Implement conversation deletion
   - Delete button/context menu action
   - Confirmation dialog for deletion
   - Remove from store and update UI
@@ -47,11 +47,11 @@
   - Clear all conversations from store
 
 ## Phase 4: Persistence & Auto-save
-- [ ] 4.1 Auto-save conversation on message add
+- [x] 4.1 Auto-save conversation on message add
   - Debounce saves to avoid excessive writes
   - Update conversation timestamp
   - Handle errors gracefully
-- [ ] 4.2 Load conversation on app start
+- [x] 4.2 Load conversation on app start
   - Restore last active conversation or show new
   - Handle missing/corrupted conversations
 - [ ] 4.3 Add conversation export functionality

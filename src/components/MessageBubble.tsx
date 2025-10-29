@@ -1,6 +1,6 @@
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { Message } from './ChatInterface';
+import { Message } from '../types';
 import './MessageBubble.css';
 import { useRef, useState, useLayoutEffect } from 'react';
 
