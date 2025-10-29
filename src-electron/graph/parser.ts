@@ -14,15 +14,26 @@ export function parseLogSeqContent(content: string): Block[] {
   const blocks: Block[] = [];
   const stack: Block[] = [];
 
-  function parseLine(line: string): { level: number; content: string } {
-    const match = line.match(/^(\s*)(?:[-*+]|\d+\.)\s+(.+)$/);
-    if (!match) return { level: 0, content: line };
+  function parseLine(line: string): { level: number; content: string; isBullet: boolean } {
+    // Match bullet with content: "- content" or "* content" or "1. content"
+    const matchWithContent = line.match(/^(\s*)(?:[-*+]|\d+\.)\s+(.+)$/);
+    if (matchWithContent) {
+      const indent = matchWithContent[1].length;
+      const level = Math.floor(indent / 2);
+      const content = matchWithContent[2];
+      return { level, content, isBullet: true };
+    }
     
-    const indent = match[1].length;
-    const level = Math.floor(indent / 2);
-    const content = match[2];
+    // Match bullet without content: "-" or "*" or "+" (just the marker, possibly with trailing space)
+    const matchEmptyBullet = line.match(/^(\s*)([-*+]|\d+\.)\s*$/);
+    if (matchEmptyBullet) {
+      const indent = matchEmptyBullet[1].length;
+      const level = Math.floor(indent / 2);
+      return { level, content: '', isBullet: true };
+    }
     
-    return { level, content };
+    // Not a bullet line
+    return { level: 0, content: line, isBullet: false };
   }
 
   function extractBlockId(content: string): { id?: string; cleaned: string } {
@@ -82,20 +93,35 @@ export function parseLogSeqContent(content: string): Block[] {
     return { references, blockRefs };
   }
 
-  for (const line of lines) {
-    if (!line.trim()) continue;
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    if (!line.trim()) {
+      console.log(`[parser] Skipping empty line ${i}`);
+      continue;
+    }
     
-    const { level, content: rawContent } = parseLine(line);
-    if (level === 0 && !rawContent.match(/^[-*+]|\d+\./)) continue;
+    console.log(`[parser] Processing line ${i}: '${line.replace(/\n/g, '\\n')}'`);
+    const { level, content: rawContent, isBullet } = parseLine(line);
+    console.log(`[parser] parseLine result: level=${level}, rawContent='${rawContent}', isBullet=${isBullet}`);
+    
+    // Only process lines that are actual bullets (parseLine found a bullet marker)
+    if (!isBullet) {
+      console.log(`[parser] Skipping non-bullet line: '${rawContent}'`);
+      continue;
+    }
     
     const { id, cleaned: content1 } = extractBlockId(rawContent);
     const { properties, cleaned: content2 } = extractProperties(content1);
     const { tags, cleaned: content3 } = extractTags(content2);
     const { references, blockRefs } = extractReferences(content3);
     
+    // Don't skip empty content - keep it as is (LogSeq allows empty bullets)
+    const finalContent = content3.trim();
+    console.log(`[parser] Created block: level=${level}, content='${finalContent}', hasId=${!!id}, refs=${references.length}`);
+    
     const block: Block = {
       id,
-      content: content3.trim(),
+      content: finalContent,
       level,
       children: [],
       properties,

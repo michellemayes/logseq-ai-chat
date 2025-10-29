@@ -73,9 +73,11 @@ KEY RULES:
         contextContent += `\n[[${item.pageName}]]\n`;
         if (item.blocks && item.blocks.length > 0) {
           // Include ALL blocks for full page/journal content
-          item.blocks.forEach((block) => {
-            console.log('[llm/provider] Adding block:', block.content.substring(0, 100));
-            contextContent += `${block.content}\n`;
+          item.blocks.forEach((block, idx) => {
+            const content = block.content || '';
+            console.log(`[llm/provider] Adding block ${idx}: content='${content}' (length=${content.length})`);
+            // Always include the block content, even if empty (empty bullets are valid in LogSeq)
+            contextContent += `${content || '(empty block)'}\n`;
           });
         } else if (item.excerpt) {
           // Fallback to excerpt if no blocks

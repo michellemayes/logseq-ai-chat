@@ -38,8 +38,11 @@ export async function scanLogSeqDirectory(rootPath: string): Promise<string[]> {
 export async function readMarkdownFile(filePath: string): Promise<string> {
   try {
     const content = await readFile(filePath, 'utf-8');
+    console.log(`[scanner] readMarkdownFile('${filePath}'): length=${content.length}, lines=${content.split('\n').length}`);
+    console.log(`[scanner] Content preview (first 500 chars):`, JSON.stringify(content.substring(0, 500)));
     return content;
   } catch (error) {
+    console.error(`[scanner] Failed to read file ${filePath}:`, error);
     throw new Error(`Failed to read file ${filePath}: ${error}`);
   }
 }

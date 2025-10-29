@@ -135,7 +135,81 @@ export function setupIpcHandlers() {
 
   ipcMain.handle('get-journal', async (_event, dateStr: string) => {
     console.log('[ipc/handlers] get-journal called for date:', dateStr);
-    return getJournal(dateStr);
+    let result = getJournal(dateStr);
+    
+    // If not found in index, read directly from file
+    if (!result) {
+      const settings = getSettings();
+      if (settings.logseqPath) {
+        const dateFilename = dateStr.replace(/-/g, '_');
+        const filePath = `${settings.logseqPath}/journals/${dateFilename}.md`;
+        console.log('[ipc/handlers] Journal not in index, reading directly:', filePath);
+        
+        try {
+          const content = await readMarkdownFile(filePath);
+          console.log('[ipc/handlers] Successfully read journal file, length:', content.length);
+          console.log('[ipc/handlers] Journal file content preview:', content.substring(0, 200));
+          
+          // Parse and format the content directly
+          const { frontmatter, body } = parseMarkdown(content);
+          console.log('[ipc/handlers] Body to parse (first 500 chars):', body.substring(0, 500));
+          
+          const { parseLogSeqContent, getAllBlocks } = await import('../graph/parser');
+          const blocks = parseLogSeqContent(body);
+          const allBlocks = getAllBlocks(blocks);
+          
+          console.log('[ipc/handlers] Parsed journal blocks:', allBlocks.length);
+          allBlocks.forEach((b, idx) => {
+            console.log(`[ipc/handlers] Block ${idx}: level=${b.level}, content='${b.content}' (length=${b.content.length}), hasId=${!!b.id}`);
+          });
+          
+          // Filter out blocks with completely empty content UNLESS they're intentionally empty bullets
+          const validBlocks = allBlocks.filter(b => {
+            // Keep blocks even if content is empty (LogSeq allows empty bullets)
+            // But log them for debugging
+            if (!b.content || b.content.trim() === '') {
+              console.log(`[ipc/handlers] Found empty block at index ${allBlocks.indexOf(b)}`);
+            }
+            return true; // Keep all blocks for now
+          });
+          
+          console.log('[ipc/handlers] Valid blocks after filtering:', validBlocks.length);
+          
+          const journalPageName = `journals/${dateFilename}`;
+          result = {
+            pageName: journalPageName,
+            path: filePath,
+            frontmatter: frontmatter,
+            blocks: validBlocks.map(b => ({
+              id: b.id,
+              content: b.content || '', // Ensure content is at least empty string
+              level: b.level,
+              properties: b.properties,
+              tags: b.tags,
+              references: b.references,
+              blockRefs: b.blockRefs,
+            })),
+            allTags: Array.from(new Set(validBlocks.flatMap(b => b.tags))),
+            allProperties: Object.assign({}, ...validBlocks.map(b => b.properties)),
+          };
+          
+          console.log('[ipc/handlers] Created journal content from direct read:', result.blocks.length, 'blocks');
+        } catch (error) {
+          console.error('[ipc/handlers] Failed to read journal file directly:', error);
+          if (error instanceof Error) {
+            console.error('[ipc/handlers] Error details:', error.message, error.stack);
+          }
+        }
+      }
+    }
+    
+    if (result) {
+      console.log('[ipc/handlers] Returning journal:', result.pageName, 'with', result.blocks.length, 'blocks');
+    } else {
+      console.log('[ipc/handlers] Journal not found and could not read file directly');
+    }
+    
+    return result;
   });
 
   // LLM
