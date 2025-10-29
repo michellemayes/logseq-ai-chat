@@ -1,5 +1,6 @@
 import { Message } from './ChatInterface';
 import MessageBubble from './MessageBubble';
+import TypingIndicator from './TypingIndicator';
 import './MessageList.css';
 
 interface MessageListProps {
@@ -24,7 +25,9 @@ export default function MessageList({ messages, loading, endRef }: MessageListPr
       ))}
       {loading && (
         <div className="message-bubble assistant">
-          <div className="message-content">Thinking...</div>
+          <div className="message-content">
+            <TypingIndicator />
+          </div>
         </div>
       )}
       <div ref={endRef} />

@@ -7,6 +7,7 @@ import { searchGraph, getPage, getJournal } from '../graph/search';
 import { chatWithLLM } from '../llm/provider';
 import { buildIndex } from '../graph/index';
 import { getIndex } from '../graph/index';
+import { GroqProvider } from '../llm/provider';
 
 export function setupIpcHandlers() {
   // Settings
@@ -257,6 +258,45 @@ export function setupIpcHandlers() {
   ipcMain.handle('chat', async (_event, messages: Array<{ role: string; content: string }>, context: Array<{ pageName: string; excerpt: string; blocks?: Array<{ content: string; id?: string; level?: number }> }> | undefined) => {
     const settings = getSettings();
     return chatWithLLM(settings.provider, messages, context);
+  });
+
+  // Streaming LLM
+  ipcMain.on('chat-stream-start', async (event, { messages, context }: { messages: Array<{ role: string; content: string }>; context: Array<{ pageName: string; excerpt: string; blocks?: Array<{ content: string; id?: string; level?: number }> }> | undefined }) => {
+    const settings = getSettings();
+    
+    if (!settings.apiKey) {
+      event.sender.send('chat-stream-error', { error: 'Groq API key not configured' });
+      return;
+    }
+
+    try {
+      const provider = new GroqProvider(settings.apiKey, settings.model);
+      let fullContent = '';
+      
+      await provider.chatStream(
+        messages,
+        context,
+        (token: string) => {
+          fullContent += token;
+          event.sender.send('chat-stream-token', { token });
+        }
+      );
+
+      event.sender.send('chat-stream-end', { fullContent });
+    } catch (error) {
+      console.error('[ipc/handlers] Streaming error:', error);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      event.sender.send('chat-stream-error', { error: errorMessage });
+      
+      // Fallback to non-streaming mode
+      try {
+        const response = await chatWithLLM(settings.provider, messages, context);
+        event.sender.send('chat-stream-fallback', { response });
+      } catch (fallbackError) {
+        console.error('[ipc/handlers] Fallback also failed:', fallbackError);
+        event.sender.send('chat-stream-error', { error: 'Streaming failed and fallback also failed' });
+      }
+    }
   });
 
   // Content creation

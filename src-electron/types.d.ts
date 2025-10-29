@@ -45,6 +45,15 @@ export interface ElectronAPI {
   watchDirectory: (path: string) => Promise<void>;
   onFileChange: (callback: (data: { event: string; filePath: string }) => void) => void;
   chat: (messages: Array<{ role: string; content: string }>, context: Array<{ pageName: string; excerpt: string; blocks?: Array<{ content: string; id?: string; level?: number }> }> | undefined) => Promise<string>;
+  chatStream: (
+    messages: Array<{ role: string; content: string }>,
+    context: Array<{ pageName: string; excerpt: string; blocks?: Array<{ content: string; id?: string; level?: number }> }> | undefined,
+    callbacks: {
+      onToken: (token: string) => void;
+      onComplete: (fullContent: string) => void;
+      onError: (error: string) => void;
+    }
+  ) => void;
   search: (query: string) => Promise<Array<{ pageName: string; score: number; excerpt: string; blocks: Array<{ content: string; id?: string }> }>>;
   getPage: (pageName: string) => Promise<PageContent | null>;
   getJournal: (dateStr: string) => Promise<PageContent | null>;

@@ -11,6 +11,15 @@ interface ElectronAPI {
   watchDirectory: (path: string) => Promise<void>;
   onFileChange: (callback: (data: { event: string; filePath: string }) => void) => void;
   chat: (messages: Array<{ role: string; content: string }>, context: Array<{ pageName: string; excerpt: string; blocks?: Array<{ content: string; id?: string; level?: number }> }> | undefined) => Promise<string>;
+  chatStream: (
+    messages: Array<{ role: string; content: string }>,
+    context: Array<{ pageName: string; excerpt: string; blocks?: Array<{ content: string; id?: string; level?: number }> }> | undefined,
+    callbacks: {
+      onToken: (token: string) => void;
+      onComplete: (fullContent: string) => void;
+      onError: (error: string) => void;
+    }
+  ) => void;
   search: (query: string) => Promise<any[]>;
   getPage: (pageName: string) => Promise<PageContent | null>;
   getJournal: (dateStr: string) => Promise<PageContent | null>;
@@ -39,6 +48,53 @@ const electronAPI: ElectronAPI = {
   
   // LLM
   chat: (messages: Array<{ role: string; content: string }>, context: Array<{ pageName: string; excerpt: string; blocks?: Array<{ content: string; id?: string; level?: number }> }> | undefined) => ipcRenderer.invoke('chat', messages, context),
+  chatStream: (
+    messages: Array<{ role: string; content: string }>,
+    context: Array<{ pageName: string; excerpt: string; blocks?: Array<{ content: string; id?: string; level?: number }> }> | undefined,
+    callbacks: {
+      onToken: (token: string) => void;
+      onComplete: (fullContent: string) => void;
+      onError: (error: string) => void;
+    }
+  ) => {
+    // Set up event listeners with named handlers so we can remove them selectively
+    const tokenHandler = (_event: any, data: { token: string }) => {
+      callbacks.onToken(data.token);
+    };
+    
+    // Cleanup function to remove all listeners for this stream
+    // This will be called after handlers are assigned
+    const cleanup = () => {
+      ipcRenderer.removeListener('chat-stream-token', tokenHandler);
+      ipcRenderer.removeListener('chat-stream-end', endHandler);
+      ipcRenderer.removeListener('chat-stream-error', errorHandler);
+      ipcRenderer.removeListener('chat-stream-fallback', fallbackHandler);
+    };
+    
+    const endHandler = (_event: any, data: { fullContent: string }) => {
+      cleanup();
+      callbacks.onComplete(data.fullContent);
+    };
+    
+    const errorHandler = (_event: any, data: { error: string }) => {
+      cleanup();
+      callbacks.onError(data.error);
+    };
+    
+    const fallbackHandler = (_event: any, data: { response: string }) => {
+      cleanup();
+      callbacks.onComplete(data.response);
+    };
+
+    // Register listeners before starting stream to avoid race conditions
+    ipcRenderer.on('chat-stream-token', tokenHandler);
+    ipcRenderer.on('chat-stream-end', endHandler);
+    ipcRenderer.on('chat-stream-error', errorHandler);
+    ipcRenderer.on('chat-stream-fallback', fallbackHandler);
+
+    // Start streaming
+    ipcRenderer.send('chat-stream-start', { messages, context });
+  },
   
   // Search
   search: (query: string) => ipcRenderer.invoke('search', query),

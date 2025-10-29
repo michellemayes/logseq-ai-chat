@@ -35,12 +35,14 @@ export default function ChatInterface({ onOpenSidebar }: ChatInterfaceProps) {
   const { theme, toggleTheme } = useTheme();
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(false);
+  const [isStreaming, setIsStreaming] = useState(false);
+  const [streamingContent, setStreamingContent] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const lastActionKeyRef = useRef<string | null>(null);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+  }, [messages, streamingContent]);
 
   // Ensure index is built on mount (so search works without re-saving settings)
   useEffect(() => {
@@ -288,88 +290,12 @@ export default function ChatInterface({ onOpenSidebar }: ChatInterfaceProps) {
         console.log(`[ChatInterface] Context ${idx}:`, ctx.pageName, 'blocks:', ctx.blocks?.length || 0);
       });
 
-      const response = await window.electronAPI.chat(
-        [
-          ...messages.map((m) => ({ role: m.role, content: m.content })),
-          { role: 'user', content },
-        ],
-        context
-      );
-
       const noContextWarning = !context || context.length === 0;
 
-      // Parse response for LOGSEQ_ACTION commands (robust parsing)
-      let action: { type?: 'create_journal' | 'create_page' | 'append_to_page'; action?: string; date?: string; pageName?: string; content: string } | undefined;
-      let displayContent = response;
+      // Helper function for executing actions
+      const executeAction = async (action: { type?: 'create_journal' | 'create_page' | 'append_to_page'; action?: string; date?: string; pageName?: string; content: string }, noContextWarning: boolean) => {
+        if (!action.type) return;
 
-      const tagMatch = response.match(/<LOGSEQ_ACTION>([\s\S]*?)<\/LOGSEQ_ACTION>/);
-      const fencedMatch = response.match(/```(?:json|JSON)?[\r\n]+([\s\S]*?)```/);
-      const jsonLikeMatch = response.match(/\{[\s\S]*\}/);
-
-      const tryParse = (raw: string | undefined) => {
-        if (!raw) return undefined;
-        try {
-          return JSON.parse(raw.trim());
-        } catch {
-          return undefined;
-        }
-      };
-
-      action = tryParse(tagMatch?.[1]) || tryParse(fencedMatch?.[1]) || tryParse(jsonLikeMatch?.[0]);
-      // Normalize possible 'action' property into 'type'
-      if (action && !action.type && action.action) {
-        action.type = action.action as any;
-      }
-      if (action && tagMatch) {
-        displayContent = response.replace(/<LOGSEQ_ACTION>[\s\S]*?<\/LOGSEQ_ACTION>/, '').trim();
-      }
-
-      // Heuristic fallback: infer action when LLM forgot to include LOGSEQ_ACTION
-      if (!action) {
-        const today = new Date();
-        const todayISO = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-        const todayJournal = `journals/${todayISO.replace(/-/g, '_')}`;
-
-        const wantsAppendToday = /(add|append|update).*(today'?s|today)/i.test(content) || /journal.*(add|append|update)/i.test(content);
-        const createPageMatch = content.match(/create\s+(?:a\s+)?page\s+(?:called\s+)?"?\[?\[?([^\]\"]+?)\]?\]?"?/i);
-        const appendToPageMatch = content.match(/add|append.*to\s+(?:the\s+)?"?\[?\[?([^\]\"]+?)\]?\]?"?\s+page/i);
-
-        if (wantsAppendToday) {
-          action = { action: 'append_to_page', pageName: todayJournal, content: `\n- ${content}` };
-        } else if (createPageMatch && createPageMatch[1]) {
-          action = { action: 'create_page', pageName: createPageMatch[1].trim(), content };
-        } else if (appendToPageMatch && appendToPageMatch[1]) {
-          action = { action: 'append_to_page', pageName: appendToPageMatch[1].trim(), content: `\n- ${content}` };
-        }
-
-        if (action) {
-          console.log('[ChatInterface] Inferred action due to missing LOGSEQ_ACTION:', action);
-        } else {
-          console.log('[ChatInterface] No LOGSEQ_ACTION found and could not infer action.');
-        }
-      }
-
-      const assistantMessage: Message = {
-        role: 'assistant',
-        content: displayContent,
-        citations: context.map((c: { pageName: string; excerpt: string; filePath?: string }) => ({
-          pageName: c.pageName,
-          excerpt: c.excerpt,
-          filePath: c.filePath,
-        })),
-        noContextWarning,
-        action: action && action.type ? {
-          type: action.type,
-          date: action.date,
-          pageName: action.pageName,
-          content: action.content,
-        } : undefined,
-      };
-
-      setMessages((prev) => [...prev, assistantMessage]);
-
-      // Auto-execute file operations
-      if (action && settings.logseqPath) {
         try {
           const actionKey = `${action.type}|${action.pageName || ''}|${action.date || ''}|${(action.content || '').trim()}`;
           if (lastActionKeyRef.current === actionKey) {
@@ -387,10 +313,19 @@ export default function ChatInterface({ onOpenSidebar }: ChatInterfaceProps) {
               }
             } else {
               console.log('[ChatInterface] Blocking file update without context. Action:', action.type);
-              setMessages((prev) => [
-                ...prev,
-                { role: 'assistant', content: 'ℹ️ No Logseq context available — not updating existing files. Please reference a page/journal or rebuild the index. You may create a new page instead.' }
-              ]);
+              // Check if we've already shown this warning in the last message
+              setMessages((prev) => {
+                const lastMsg = prev[prev.length - 1];
+                const warningText = 'ℹ️ No Logseq context available — not updating existing files. Please reference a page/journal or rebuild the index. You may create a new page instead.';
+                if (lastMsg && lastMsg.role === 'assistant' && lastMsg.content.includes(warningText)) {
+                  // Already shown, don't add again
+                  return prev;
+                }
+                return [
+                  ...prev,
+                  { role: 'assistant', content: warningText }
+                ];
+              });
               return;
             }
           }
@@ -455,23 +390,135 @@ export default function ChatInterface({ onOpenSidebar }: ChatInterfaceProps) {
             },
           ]);
         }
-      }
+      };
+
+      // Create placeholder assistant message for streaming
+      const initialAssistantMessage: Message = {
+        role: 'assistant',
+        content: '',
+        citations: context.map((c: { pageName: string; excerpt: string; filePath?: string }) => ({
+          pageName: c.pageName,
+          excerpt: c.excerpt,
+          filePath: c.filePath,
+        })),
+        noContextWarning,
+      };
+      setMessages((prev) => [...prev, initialAssistantMessage]);
+      setIsStreaming(true);
+      setStreamingContent('');
+
+      // Use streaming API
+      window.electronAPI.chatStream(
+        [
+          ...messages.map((m) => ({ role: m.role, content: m.content })),
+          { role: 'user', content },
+        ],
+        context,
+        {
+          onToken: (token: string) => {
+            setStreamingContent((prev) => {
+              const newContent = prev + token;
+              // Update the last message with streaming content
+              setMessages((prevMsgs) => {
+                const updated = [...prevMsgs];
+                const lastMsg = updated[updated.length - 1];
+                if (lastMsg && lastMsg.role === 'assistant') {
+                  lastMsg.content = newContent;
+                }
+                return updated;
+              });
+              return newContent;
+            });
+          },
+          onComplete: (fullContent: string) => {
+            setIsStreaming(false);
+            setStreamingContent('');
+
+            // Parse response for LOGSEQ_ACTION commands (robust parsing)
+            let action: { type?: 'create_journal' | 'create_page' | 'append_to_page'; action?: string; date?: string; pageName?: string; content: string } | undefined;
+            let displayContent = fullContent;
+
+            const tagMatch = fullContent.match(/<LOGSEQ_ACTION>([\s\S]*?)<\/LOGSEQ_ACTION>/);
+            const fencedMatch = fullContent.match(/```(?:json|JSON)?[\r\n]+([\s\S]*?)```/);
+            const jsonLikeMatch = fullContent.match(/\{[\s\S]*\}/);
+
+            const tryParse = (raw: string | undefined) => {
+              if (!raw) return undefined;
+              try {
+                return JSON.parse(raw.trim());
+              } catch {
+                return undefined;
+              }
+            };
+
+            action = tryParse(tagMatch?.[1]) || tryParse(fencedMatch?.[1]) || tryParse(jsonLikeMatch?.[0]);
+            // Normalize possible 'action' property into 'type'
+            if (action && !action.type && action.action) {
+              action.type = action.action as any;
+            }
+            if (action && tagMatch) {
+              displayContent = fullContent.replace(/<LOGSEQ_ACTION>[\s\S]*?<\/LOGSEQ_ACTION>/, '').trim();
+            }
+
+            // Don't infer actions - only execute when explicitly included in LOGSEQ_ACTION tag
+            if (!action) {
+              console.log('[ChatInterface] No LOGSEQ_ACTION found - not executing any file operations.');
+            }
+
+            // Update the final message with parsed content and action
+            setMessages((prevMsgs) => {
+              const updated = [...prevMsgs];
+              const lastMsg = updated[updated.length - 1];
+              if (lastMsg && lastMsg.role === 'assistant') {
+                lastMsg.content = displayContent;
+                lastMsg.action = action && action.type ? {
+                  type: action.type,
+                  date: action.date,
+                  pageName: action.pageName,
+                  content: action.content,
+                } : undefined;
+              }
+              return updated;
+            });
+
+            // Auto-execute file operations
+            if (action && settings.logseqPath) {
+              executeAction(action, noContextWarning).catch(err => {
+                console.error('Failed to execute action:', err);
+              });
+            }
+            
+            setLoading(false);
+          },
+          onError: (error: string) => {
+            setIsStreaming(false);
+            setStreamingContent('');
+            setLoading(false);
+            const errorMessage: Message = {
+              role: 'assistant',
+              content: `Error: ${error}`,
+            };
+            setMessages((prev) => [...prev, errorMessage]);
+          },
+        }
+      );
     } catch (error) {
       console.error('Chat error:', error);
+      setIsStreaming(false);
+      setStreamingContent('');
+      setLoading(false);
       const errorMessage: Message = {
         role: 'assistant',
         content: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
       };
       setMessages((prev) => [...prev, errorMessage]);
-    } finally {
-      setLoading(false);
     }
   };
 
   return (
     <div className="chat-interface">
       <Header onOpenSidebar={onOpenSidebar} onToggleTheme={toggleTheme} theme={theme} />
-      <MessageList messages={messages} loading={loading} endRef={messagesEndRef} />
+      <MessageList messages={messages} loading={loading || isStreaming} endRef={messagesEndRef} />
       <MessageInput onSend={handleSend} disabled={loading || !settings.apiKey || !settings.logseqPath} />
     </div>
   );
