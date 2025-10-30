@@ -1,17 +1,25 @@
 # Logseq AI Chat
 
-An Electron desktop application that provides an AI chat interface integrated with Logseq. Chat with your notes using LLM providers (currently Groq, with OpenAI, Anthropic, and Ollama support planned) with automatic context retrieval from your Logseq knowledge graph.
+An Electron desktop application that provides an AI chat interface integrated with Logseq. Chat with your notes using multiple LLM providers (Groq, OpenAI, Anthropic, and Ollama) with automatic context retrieval from your Logseq knowledge graph.
 
 ## Features
 
 - **File System Integration**: Direct access to your Logseq graph directory
 - **Graph Analysis**: Full-text search, backlinks, forward links, tag and property indexing
-- **LLM Integration**: Streaming responses with Groq API (multi-provider support planned)
+- **LLM Integration (Multi-Provider)**: Groq, OpenAI, Anthropic, and Ollama with streaming
 - **Context Injection**: Automatic retrieval of relevant content from your notes with configurable filtering
 - **Content Creation**: Create journal entries and pages with proper Logseq formatting
 - **Conversation History**: Save and resume conversations locally with search and export
 - **Streaming Responses**: Real-time token streaming for faster perceived response time
 - **Modern UI**: Clean chat interface with dark/light theme support, inline citations, and conversation management
+- **Block References**: The AI can reference specific blocks using `((block-id))`, with clickable previews
+- **Temporal Intelligence**: Query journals by date ranges (e.g., "last week"), compare journals, detect patterns
+- **Task Management**: Parse and query TODO/DOING/DONE, update task status via chat, summaries per journal
+- **Copy to Clipboard**: One-click copy for each AI message
+- **Timestamps**: Local date/time per message (assistant bottom-left, user bottom-right)
+- **Collapsible Sources**: Sources are collapsed by default, expandable on click
+- **Custom Primary Color**: Change the accent color in Settings; applied app-wide
+- **Robust File Ops**: Execute multiple create/update actions in one LLM response
 
 ## Installation
 
@@ -19,11 +27,11 @@ An Electron desktop application that provides an AI chat interface integrated wi
 
 - Node.js 18+ and npm
 - A Logseq graph directory
-- API key for your chosen LLM provider:
+- Credentials for your chosen LLM provider (configure in Settings → Provider):
   - Groq API key ([Get one here](https://console.groq.com/))
-  - OpenAI API key (coming soon)
-  - Anthropic API key (coming soon)
-  - Ollama (local setup, coming soon)
+  - OpenAI API key
+  - Anthropic API key
+  - Ollama endpoint (e.g., http://localhost:11434) and model
 
 ### Setup
 
@@ -61,14 +69,14 @@ This starts both the Electron main process and the React development server.
 3. Create a new API key
 4. Copy the key (it won't be shown again)
 
-### Setting Up Logseq Path
+### Setting Up & Providers
 
 1. Open the app
 2. Click the settings button in the header
 3. Click "Browse" next to "Logseq Graph Path"
 4. Select your Logseq graph directory (typically contains `pages/`, `journals/`, and `logseq/` folders)
-5. Enter your Groq API key
-6. Select your preferred model
+5. Select your provider (Groq, OpenAI, Anthropic, Ollama)
+6. Enter the API key or endpoint as required, and select a model
 7. Click "Save Settings"
 
 ### Context Configuration
@@ -96,8 +104,10 @@ These settings help balance token usage, cost, and response quality. Use stricte
 1. Ask questions about your notes
 2. The app automatically searches your Logseq graph for relevant content
 3. AI responses are streamed in real-time as tokens arrive
-4. Responses include citations showing which pages/blocks were referenced
+4. Responses include citations showing which pages/blocks were referenced (collapsed by default)
 5. Click on citations to see excerpts from source content
+6. Click the copy icon on any assistant message to copy the full message
+7. Message timestamps are shown under each bubble in your local timezone
 
 ### Conversation Management
 
@@ -106,7 +116,7 @@ These settings help balance token usage, cost, and response quality. Use stricte
 - **Search Conversations**: Type in the search box to find conversations by title or content
 - **Rename Conversations**: Double-click a conversation title to rename it
 - **Delete Conversations**: Hover over a conversation and click the trash icon
-- **Export Conversations**: Hover over a conversation and click the export icon to save as markdown
+- **Export Conversations**: Hover over a conversation and click the export icon to save as markdown (includes message timestamps)
 
 ### Creating Content
 
@@ -118,6 +128,16 @@ Ask the AI: "Create a page called 'Project Ideas' with content about..."
 
 #### Appending to Pages
 Ask the AI: "Add a bullet point to the 'Project Ideas' page about..."
+
+### Block References
+- The AI may include block references using `((block-id))`
+- In the chat, block references are clickable and show a hover preview
+- Clicking navigates to the source file in your Logseq graph
+
+### Tasks & Temporal Queries
+- Ask for TODO/DOING/DONE items, or "tasks due this week"
+- Mark tasks as DONE via chat; updates your markdown files
+- Ask temporal questions like "what did I write last week?" or compare journals
 
 ## Project Structure
 

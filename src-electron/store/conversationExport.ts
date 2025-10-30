@@ -12,10 +12,16 @@ export function formatConversationAsMarkdown(conversation: Conversation): string
 
   for (const message of conversation.messages) {
     const roleHeader = message.role === 'user' ? '## You' : '## Assistant';
+    const ts = message.createdAt ? new Date(message.createdAt).toLocaleString() : '';
     markdown += `${roleHeader}\n\n`;
     
     // Add message content
     markdown += `${message.content}\n\n`;
+
+    // Add timestamp (local timezone)
+    if (ts) {
+      markdown += `*Timestamp:* ${ts}\n\n`;
+    }
     
     // Add citations if present
     if (message.citations && message.citations.length > 0) {
