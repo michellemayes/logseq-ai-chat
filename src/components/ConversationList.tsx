@@ -47,6 +47,9 @@ export default function ConversationList({
       )
     : conversations;
 
+  // Sort conversations by updatedAt (most recent first)
+  const sortedConversations = [...filteredConversations].sort((a, b) => b.updatedAt - a.updatedAt);
+
   const handleStartEdit = (conv: ConversationMetadata) => {
     setEditingId(conv.id);
     setEditTitle(conv.title);
@@ -80,13 +83,13 @@ export default function ConversationList({
           + New Conversation
         </button>
       </div>
-      {filteredConversations.length === 0 ? (
+      {sortedConversations.length === 0 ? (
         <div className="conversation-list-empty">
           {searchQuery ? 'No conversations found' : 'No conversations yet'}
         </div>
       ) : (
         <div className="conversation-items">
-          {filteredConversations.map(conv => (
+          {sortedConversations.map(conv => (
             <div
               key={conv.id}
               className={`conversation-item ${activeConversationId === conv.id ? 'active' : ''}`}

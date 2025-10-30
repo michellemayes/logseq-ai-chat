@@ -40,37 +40,30 @@ export default function ChatInterface({ onOpenSidebar, onOpenConversations, conv
   // Load conversation on mount or when conversationId changes
   useEffect(() => {
     const loadConversation = async () => {
-      if (conversationId) {
+      if (conversationId !== null && conversationId !== undefined) {
         try {
           const conv = await window.electronAPI.getConversation(conversationId);
           if (conv) {
             setMessages(conv.messages);
             setCurrentConversationId(conv.id);
+          } else {
+            // Conversation not found, clear messages
+            setMessages([]);
+            setCurrentConversationId(null);
           }
         } catch (error) {
           console.error('Failed to load conversation:', error);
+          setMessages([]);
+          setCurrentConversationId(null);
         }
       } else {
-        // Load last active conversation on mount
-        try {
-          const activeId = await window.electronAPI.getActiveConversationId();
-          if (activeId) {
-            const conv = await window.electronAPI.getConversation(activeId);
-            if (conv) {
-              setMessages(conv.messages);
-              setCurrentConversationId(conv.id);
-              if (onConversationChange) {
-                onConversationChange(conv.id);
-              }
-            }
-          }
-        } catch (error) {
-          console.error('Failed to load active conversation:', error);
-        }
+        // No conversationId provided - clear messages
+        setMessages([]);
+        setCurrentConversationId(null);
       }
     };
     loadConversation();
-  }, [conversationId, onConversationChange]);
+  }, [conversationId]);
 
   // Auto-save conversation with debouncing
   const saveConversation = useCallback(async (conversationMessages: Message[], conversationTitle?: string) => {

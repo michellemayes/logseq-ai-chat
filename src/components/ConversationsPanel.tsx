@@ -18,6 +18,8 @@ export default function ConversationsPanel({ isOpen, onClose, onSelectConversati
     if (isOpen) {
       loadConversations();
       loadActiveConversation();
+      // Clear search when opening panel
+      setSearchQuery('');
     }
   }, [isOpen]);
 
@@ -52,6 +54,10 @@ export default function ConversationsPanel({ isOpen, onClose, onSelectConversati
     try {
       await window.electronAPI.deleteConversation(id);
       await loadConversations();
+      // If there's a search query, re-apply it
+      if (searchQuery.trim()) {
+        await handleSearch(searchQuery);
+      }
       if (activeConversationId === id) {
         setActiveConversationId(null);
         await window.electronAPI.setActiveConversationId(null);

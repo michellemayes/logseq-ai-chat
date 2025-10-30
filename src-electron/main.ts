@@ -10,6 +10,8 @@ function createWindow() {
   mainWindow = new BrowserWindow({
     width: 600,
     height: 800,
+    titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : undefined,
+    frame: process.platform !== 'darwin', // Keep frame on Windows/Linux, hidden on macOS
     webPreferences: {
       preload: join(__dirname, 'preload.js'),
       nodeIntegration: false,
