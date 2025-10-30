@@ -12,9 +12,13 @@ const SettingsContext = createContext<SettingsContextType | undefined>(undefined
 export function SettingsProvider({ children }: { children: ReactNode }) {
   const [settings, setSettings] = useState<Settings>({
     logseqPath: '',
-    apiKey: '',
-    model: 'llama-3.3-70b-versatile',
     provider: 'groq',
+    providers: {
+      groq: {
+        apiKey: '',
+        model: 'llama-3.3-70b-versatile',
+      },
+    },
     theme: 'system',
   });
   const [loading, setLoading] = useState(true);

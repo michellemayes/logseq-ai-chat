@@ -1,8 +1,5 @@
-# llm-integration Specification
+## MODIFIED Requirements
 
-## Purpose
-TBD - created by archiving change add-logseq-ai-chat-mvp. Update Purpose after archive.
-## Requirements
 ### Requirement: LLM Provider Integration (Groq)
 The system SHALL support multiple LLM providers (Groq, OpenAI, Anthropic, Ollama) for LLM responses. Each provider MUST support both streaming and non-streaming modes, with streaming as the preferred method. Providers SHALL use their respective API formats (Server-Sent Events for Groq/OpenAI, streaming for Anthropic/Ollama) and parse tokens from their respective streams. The system SHALL allow users to select their preferred provider in settings.
 
@@ -35,41 +32,7 @@ The system SHALL support multiple LLM providers (Groq, OpenAI, Anthropic, Ollama
 - **THEN** the system prompt informs the AI of direct graph access
 - **AND** citations are included in the streamed response
 
-### Requirement: LLM Response Streaming
-The system SHALL stream LLM response tokens as they arrive from the API, displaying them immediately in the chat interface. Streaming MUST maintain all existing functionality including action parsing and citation extraction.
-
-#### Scenario: Stream tokens as they arrive
-- **WHEN** a user sends a message and the LLM begins generating a response
-- **THEN** tokens are displayed in the UI as they arrive from the API
-- **AND** each token is appended to the message content immediately
-- **AND** the full response is accumulated for parsing after stream completes
-
-#### Scenario: Handle streaming errors gracefully
-- **WHEN** a streaming error occurs during response generation
-- **THEN** the system falls back to non-streaming mode automatically
-- **AND** the user receives the complete response via standard method
-- **AND** an error message is displayed if fallback also fails
-
-#### Scenario: Parse actions from streamed response
-- **WHEN** a streamed response contains LOGSEQ_ACTION tags
-- **THEN** the full response is accumulated during streaming
-- **AND** action parsing occurs after the stream completes
-- **AND** file operations execute as normal
-
-### Requirement: Streaming UI Feedback
-The system SHALL provide visual feedback during streaming, including a typing indicator before the first token arrives and smooth content updates as tokens stream in.
-
-#### Scenario: Show typing indicator during initialization
-- **WHEN** a streaming response is initiated
-- **THEN** a typing indicator is displayed immediately
-- **AND** the indicator disappears when the first token arrives
-- **AND** the indicator shows while waiting for API response
-
-#### Scenario: Display streaming content smoothly
-- **WHEN** tokens arrive during streaming
-- **THEN** each token is appended to the message content immediately
-- **AND** the UI scrolls to show new content automatically
-- **AND** the message bubble updates without flickering or re-rendering
+## ADDED Requirements
 
 ### Requirement: Multi-Provider Support
 The system SHALL support multiple LLM providers with provider-specific configuration. Each provider SHALL maintain its own API key, model selection, and endpoint settings. The system SHALL allow users to switch providers without restarting the application.

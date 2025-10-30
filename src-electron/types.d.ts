@@ -41,9 +41,15 @@ export interface ConversationMetadata {
 
 export interface Settings {
   logseqPath: string;
-  apiKey: string;
-  model: string;
-  provider: 'groq';
+  apiKey?: string; // Deprecated - use providers.groq.apiKey instead
+  model?: string; // Deprecated - use providers.groq.model instead
+  provider: 'groq' | 'openai' | 'anthropic' | 'ollama';
+  providers: {
+    groq?: { apiKey: string; model: string };
+    openai?: { apiKey: string; model: string };
+    anthropic?: { apiKey: string; model: string };
+    ollama?: { endpoint: string; model: string };
+  };
   theme: 'light' | 'dark' | 'system';
   contextSettings?: ContextSettings;
 }

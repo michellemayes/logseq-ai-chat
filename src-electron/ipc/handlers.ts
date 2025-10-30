@@ -4,10 +4,8 @@ import { Settings } from '../types';
 import { scanLogseqDirectory, readMarkdownFile, writeMarkdownFile, parseMarkdown } from '../filesystem/scanner';
 import { watchLogseqDirectory } from '../filesystem/watcher';
 import { searchGraph, getPage, getJournal } from '../graph/search';
-import { chatWithLLM } from '../llm/provider';
-import { buildIndex } from '../graph/index';
-import { getIndex } from '../graph/index';
-import { GroqProvider } from '../llm/provider';
+import { buildIndex, getIndex } from '../graph/index';
+import { chatWithLLM, createProvider } from '../llm/provider';
 import {
   createConversation,
   getConversation,
@@ -86,7 +84,7 @@ export function setupIpcHandlers() {
   ipcMain.handle('get-index-stats', () => {
     const idx = getIndex();
     const pagesCount = idx.pages.size;
-    const journalsCount = Array.from(idx.pages.keys()).filter((k) => k.startsWith('journals/')).length;
+    const journalsCount = Array.from(idx.pages.keys()).filter((k: string) => k.startsWith('journals/')).length;
     return { pages: pagesCount, journals: journalsCount };
   });
 
@@ -278,14 +276,15 @@ export function setupIpcHandlers() {
   // Streaming LLM
   ipcMain.on('chat-stream-start', async (event, { messages, context }: { messages: Array<{ role: string; content: string }>; context: Array<{ pageName: string; excerpt: string; blocks?: Array<{ content: string; id?: string; level?: number }> }> | undefined }) => {
     const settings = getSettings();
+    const providerConfig = settings.providers?.[settings.provider];
     
-    if (!settings.apiKey) {
-      event.sender.send('chat-stream-error', { error: 'Groq API key not configured' });
+    if (!providerConfig) {
+      event.sender.send('chat-stream-error', { error: `${settings.provider} provider not configured` });
       return;
     }
 
     try {
-      const provider = new GroqProvider(settings.apiKey, settings.model);
+      const provider = createProvider(settings.provider, providerConfig);
       let fullContent = '';
       
       await provider.chatStream(

@@ -115,7 +115,11 @@ export default function ChatInterface({ onOpenSidebar, onOpenConversations, conv
   }, [currentConversationId, onConversationChange]);
 
   const handleSend = async (content: string) => {
-    if (!content.trim() || !settings.apiKey || !settings.logseqPath) {
+    const providerConfig = settings.providers?.[settings.provider];
+    const hasValidConfig = providerConfig && (
+      settings.provider === 'ollama' ? true : 'apiKey' in providerConfig && !!providerConfig.apiKey
+    );
+    if (!content.trim() || !hasValidConfig || !settings.logseqPath) {
       return;
     }
 
@@ -612,6 +616,13 @@ export default function ChatInterface({ onOpenSidebar, onOpenConversations, conv
     }
   };
 
+  const isConfigValid = () => {
+    const providerConfig = settings.providers?.[settings.provider];
+    if (!providerConfig || !settings.logseqPath) return false;
+    if (settings.provider === 'ollama') return true;
+    return 'apiKey' in providerConfig && !!providerConfig.apiKey;
+  };
+
   return (
     <div className="chat-interface">
       <Header 
@@ -624,7 +635,10 @@ export default function ChatInterface({ onOpenSidebar, onOpenConversations, conv
         onRenameConversation={handleRenameConversation}
       />
       <MessageList messages={messages} loading={loading || isStreaming} endRef={messagesEndRef} />
-      <MessageInput onSend={handleSend} disabled={loading || !settings.apiKey || !settings.logseqPath} />
+      <MessageInput 
+        onSend={handleSend} 
+        disabled={loading || !isConfigValid()} 
+      />
     </div>
   );
 }

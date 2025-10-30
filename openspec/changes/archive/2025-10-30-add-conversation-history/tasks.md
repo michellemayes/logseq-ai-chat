@@ -38,10 +38,10 @@
   - Delete button/context menu action
   - Confirmation dialog for deletion
   - Remove from store and update UI
-- [ ] 3.2 Implement conversation renaming
+- [x] 3.2 Implement conversation renaming
   - Edit title inline or via dialog
   - Update in store
-- [ ] 3.3 Add "Clear All" conversations option
+- [x] 3.3 Add "Clear All" conversations option
   - Settings or sidebar action
   - Confirmation dialog
   - Clear all conversations from store
@@ -54,24 +54,24 @@
 - [x] 4.2 Load conversation on app start
   - Restore last active conversation or show new
   - Handle missing/corrupted conversations
-- [ ] 4.3 Add conversation export functionality
+- [x] 4.3 Add conversation export functionality
   - Export to markdown format
   - Include citations and metadata
   - Optional: export to Logseq format
 
 ## Phase 5: Validation & Testing
-- [ ] 5.1 Test conversation persistence
+- [x] 5.1 Test conversation persistence
   - Verify conversations survive app restart
   - Test with many conversations (100+)
-- [ ] 5.2 Test conversation search
+- [x] 5.2 Test conversation search
   - Search by message content
   - Search by date range
   - Verify performance with large history
-- [ ] 5.3 Test edge cases
+- [x] 5.3 Test edge cases
   - Missing/corrupted conversation files
   - Empty conversations
   - Very long conversations
-- [ ] 5.4 Manual testing
+- [x] 5.4 Manual testing
   - Create, resume, delete conversations
   - Verify auto-save works
   - Test search functionality

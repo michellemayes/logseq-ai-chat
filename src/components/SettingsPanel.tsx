@@ -8,6 +8,31 @@ interface SettingsPanelProps {
   onSave: () => void;
 }
 
+const PROVIDER_MODELS: Record<string, { label: string; value: string }[]> = {
+  groq: [
+    { label: 'Llama 3.3 70B Versatile (Recommended)', value: 'llama-3.3-70b-versatile' },
+    { label: 'Mistral Saba 24B', value: 'mistral-saba-24b' },
+    { label: 'GPT OSS 120B', value: 'openai/gpt-oss-120b' },
+    { label: 'Kimi K2 0905 Instruct', value: 'moonshotai/kimi-k2-instruct-0905' },
+    { label: 'Llama 3.1 8B Instant', value: 'llama-3.1-8b-instant' },
+  ],
+  openai: [
+    { label: 'GPT-4', value: 'gpt-4' },
+    { label: 'GPT-4 Turbo', value: 'gpt-4-turbo' },
+    { label: 'GPT-3.5 Turbo', value: 'gpt-3.5-turbo' },
+  ],
+  anthropic: [
+    { label: 'Claude 3 Opus', value: 'claude-3-opus-20240229' },
+    { label: 'Claude 3 Sonnet', value: 'claude-3-sonnet-20240229' },
+    { label: 'Claude 3 Haiku', value: 'claude-3-haiku-20240307' },
+  ],
+  ollama: [
+    { label: 'Llama 2', value: 'llama2' },
+    { label: 'Mistral', value: 'mistral' },
+    { label: 'Code Llama', value: 'codellama' },
+  ],
+};
+
 export default function SettingsPanel({ settings, onChange, onSave }: SettingsPanelProps) {
   const [stats, setStats] = useState<{ pages: number; journals: number } | null>(null);
   const [contextExpanded, setContextExpanded] = useState(false);
@@ -23,6 +48,42 @@ export default function SettingsPanel({ settings, onChange, onSave }: SettingsPa
   
   const handleChange = (key: keyof Settings, value: string | ContextSettings) => {
     onChange({ ...settings, [key]: value });
+  };
+
+  const handleProviderChange = (provider: 'groq' | 'openai' | 'anthropic' | 'ollama') => {
+    const providers = settings.providers || {};
+    // Ensure provider config exists
+    if (!providers[provider]) {
+      if (provider === 'ollama') {
+        providers[provider] = { endpoint: 'http://localhost:11434', model: 'llama2' };
+      } else {
+        providers[provider] = { apiKey: '', model: PROVIDER_MODELS[provider]?.[0]?.value || '' };
+      }
+    }
+    onChange({ ...settings, provider, providers });
+  };
+
+  const handleProviderConfigChange = (provider: 'groq' | 'openai' | 'anthropic' | 'ollama', key: string, value: string) => {
+    const providers = settings.providers || {};
+    const updatedProviders = { ...providers };
+    
+    if (!updatedProviders[provider]) {
+      if (provider === 'ollama') {
+        updatedProviders[provider] = { endpoint: 'http://localhost:11434', model: 'llama2' };
+      } else {
+        updatedProviders[provider] = { apiKey: '', model: PROVIDER_MODELS[provider]?.[0]?.value || '' };
+      }
+    }
+    
+    // Update the specific field
+    const currentConfig = updatedProviders[provider]!;
+    if (provider === 'ollama') {
+      updatedProviders[provider] = { ...currentConfig as { endpoint: string; model: string }, [key]: value };
+    } else {
+      updatedProviders[provider] = { ...currentConfig as { apiKey: string; model: string }, [key]: value };
+    }
+    
+    onChange({ ...settings, providers: updatedProviders });
   };
 
   const handleContextChange = (key: keyof ContextSettings, value: number | string | string[] | undefined) => {
@@ -53,6 +114,10 @@ export default function SettingsPanel({ settings, onChange, onSave }: SettingsPa
     includeBlocks: 'all' as const,
   };
 
+  const currentProvider = settings.provider || 'groq';
+  const providerConfig = settings.providers?.[currentProvider];
+  const providerModels = PROVIDER_MODELS[currentProvider] || [];
+
   return (
     <div className="settings-panel">
       <div className="settings-section">
@@ -72,28 +137,59 @@ export default function SettingsPanel({ settings, onChange, onSave }: SettingsPa
       </div>
 
       <div className="settings-section">
-        <label className="settings-label">Groq API Key</label>
-        <input
-          type="password"
-          className="settings-input"
-          value={settings.apiKey}
-          onChange={(e) => handleChange('apiKey', e.target.value)}
-          placeholder="Enter your Groq API key"
-        />
+        <label className="settings-label">LLM Provider</label>
+        <select
+          className="settings-select"
+          value={currentProvider}
+          onChange={(e) => handleProviderChange(e.target.value as 'groq' | 'openai' | 'anthropic' | 'ollama')}
+        >
+          <option value="groq">Groq</option>
+          <option value="openai">OpenAI</option>
+          <option value="anthropic">Anthropic</option>
+          <option value="ollama">Ollama</option>
+        </select>
       </div>
+
+      {currentProvider !== 'ollama' && (
+        <div className="settings-section">
+          <label className="settings-label">
+            {currentProvider === 'groq' ? 'Groq' : currentProvider === 'openai' ? 'OpenAI' : 'Anthropic'} API Key
+          </label>
+          <input
+            type="password"
+            className="settings-input"
+            value={providerConfig && 'apiKey' in providerConfig ? providerConfig.apiKey : ''}
+            onChange={(e) => handleProviderConfigChange(currentProvider, 'apiKey', e.target.value)}
+            placeholder={`Enter your ${currentProvider === 'groq' ? 'Groq' : currentProvider === 'openai' ? 'OpenAI' : 'Anthropic'} API key`}
+          />
+        </div>
+      )}
+
+      {currentProvider === 'ollama' && (
+        <div className="settings-section">
+          <label className="settings-label">Ollama Endpoint</label>
+          <input
+            type="text"
+            className="settings-input"
+            value={providerConfig && 'endpoint' in providerConfig ? providerConfig.endpoint : 'http://localhost:11434'}
+            onChange={(e) => handleProviderConfigChange(currentProvider, 'endpoint', e.target.value)}
+            placeholder="http://localhost:11434"
+          />
+        </div>
+      )}
 
       <div className="settings-section">
         <label className="settings-label">Model</label>
         <select
           className="settings-select"
-          value={settings.model}
-          onChange={(e) => handleChange('model', e.target.value)}
+          value={providerConfig?.model || providerModels[0]?.value || ''}
+          onChange={(e) => handleProviderConfigChange(currentProvider, 'model', e.target.value)}
         >
-          <option value="llama-3.3-70b-versatile">Llama 3.3 70B Versatile (Recommended)</option>
-          <option value="mistral-saba-24b">Mistral Saba 24B</option>
-          <option value="openai/gpt-oss-120b">GPT OSS 120B</option>
-          <option value="moonshotai/kimi-k2-instruct-0905">Kimi K2 0905 Instruct</option>
-          <option value="llama-3.1-8b-instant">Llama 3.1 8B Instant</option>
+          {providerModels.map((model) => (
+            <option key={model.value} value={model.value}>
+              {model.label}
+            </option>
+          ))}
         </select>
       </div>
 
@@ -252,4 +348,3 @@ export default function SettingsPanel({ settings, onChange, onSave }: SettingsPa
     </div>
   );
 }
-

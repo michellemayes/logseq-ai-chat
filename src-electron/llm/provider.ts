@@ -1,4 +1,15 @@
+import { buildSystemPrompt } from './systemPrompt';
+
+export interface ProviderMetadata {
+  name: string;
+  models: string[];
+  supportsStreaming: boolean;
+}
+
 export interface LLMProvider {
+  getName(): string;
+  getModels(): string[];
+  supportsStreaming(): boolean;
   chat(messages: Array<{ role: string; content: string }>, context?: Array<{ pageName: string; excerpt: string; blocks?: Array<{ content: string; id?: string; level?: number }> }>): Promise<string>;
   chatStream(
     messages: Array<{ role: string; content: string }>,
@@ -10,10 +21,28 @@ export interface LLMProvider {
 export class GroqProvider implements LLMProvider {
   private apiKey: string;
   private model: string;
+  private static readonly MODELS = [
+    'llama-3.3-70b-versatile',
+    'llama-3.1-70b-versatile',
+    'mistral-saba-24b',
+    'mixtral-8x7b-32768',
+  ];
 
   constructor(apiKey: string, model: string) {
     this.apiKey = apiKey;
     this.model = model;
+  }
+
+  getName(): string {
+    return 'groq';
+  }
+
+  getModels(): string[] {
+    return GroqProvider.MODELS;
+  }
+
+  supportsStreaming(): boolean {
+    return true;
   }
 
   async chatStream(
@@ -21,88 +50,10 @@ export class GroqProvider implements LLMProvider {
     context: Array<{ pageName: string; excerpt: string; blocks?: Array<{ content: string; id?: string; level?: number }> }> | undefined,
     onToken: (token: string) => void
   ): Promise<string> {
-    // Use the same system prompt and context building as chat()
-    const today = new Date();
-    const dateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-    
-    const systemPrompt = `You are an AI assistant helping users interact with their Logseq knowledge base. 
-Current date: ${dateStr}
-
-IMPORTANT: You have DIRECT ACCESS to the user's Logseq graph. You can read any page or journal entry from their knowledge base. When the user asks about specific pages or journal entries, the system will provide you with the full content of those pages before you respond. Never say you don't have access - you DO have access!
-
-When you reference content from Logseq, cite the source page or block clearly.
-Format citations as: [[Page Name]] or ((block-id))
-
-When displaying journal or page contents to users, format them as markdown code blocks with proper indentation:
-\`\`\`markdown
-- Top level bullet
-  - Nested bullet
-    - Deeper nested bullet
-\`\`\`
-
-CRITICAL: When users request to create, update, or add content to journal entries or pages, you MUST ACTUALLY PERFORM THE OPERATION - NEVER say "simulated", "would look like", or "I'll simulate". The system will automatically execute file operations when you provide the LOGSEQ_ACTION command.
-
-When the user requests file operations, respond naturally AND include a LOGSEQ_ACTION JSON structure at the end. The system will automatically execute it. Format it like this:
-
-<LOGSEQ_ACTION>
-{
-  "action": "create_journal" | "create_page" | "append_to_page",
-  "date": "YYYY-MM-DD" (for journal entries - use ${dateStr} for today),
-  "pageName": "Page Name" (for pages - do NOT include "journals/" prefix),
-  "content": "the content to write in Logseq format (use - for bullets)"
-}
-</LOGSEQ_ACTION>
-
-EXAMPLES:
-- User: "Create a journal entry for today about my meeting" 
-  → Response: "I'll create a journal entry for today about your meeting."
-  → Then: <LOGSEQ_ACTION>{"action":"create_journal","date":"${dateStr}","content":"- Had a productive meeting..."}</LOGSEQ_ACTION>
-
-- User: "Update my journal for today" or "Add 'testing' to today's journal"
-  → Response: "I've added that to today's journal entry."
-  → Then: <LOGSEQ_ACTION>{"action":"append_to_page","pageName":"journals/${dateStr.replace(/-/g, '_')}","content":"\n- testing"}</LOGSEQ_ACTION>
-
-- User: "Create a page called Projects with my todo list"
-  → Response: "I've created the Projects page with your todo list."
-  → Then: <LOGSEQ_ACTION>{"action":"create_page","pageName":"Projects","content":"- [ ] Project 1\n- [ ] Project 2"}</LOGSEQ_ACTION>
-
-- User: "Add a note to my Projects page"
-  → Response: "I've added the note to your Projects page."
-  → Then: <LOGSEQ_ACTION>{"action":"append_to_page","pageName":"Projects","content":"\n- New note here"}</LOGSEQ_ACTION>
-
-KEY RULES:
-1. NEVER say "simulated" or "would look like" - these operations ARE REAL and WILL execute
-2. For journal entries, use "create_journal" action with date in YYYY-MM-DD format
-3. For updating existing journal pages, use "append_to_page" with pageName like "journals/2025_10_29" (YYYY_MM_DD format)
-4. Always respond confidently that you've performed the operation, then include the LOGSEQ_ACTION tag
-5. Format content in Logseq style: use "- " for bullets, proper indentation for child blocks
-6. Only include LOGSEQ_ACTION when user explicitly requests file operations`;
-
-    let contextContent = '';
-    if (context && Array.isArray(context) && context.length > 0) {
-      console.log('[llm/provider] Building context content from', context.length, 'items');
-      contextContent = `\n\nRelevant Logseq context:\n`;
-      for (const item of context) {
-        console.log('[llm/provider] Adding context item:', item.pageName, 'blocks:', item.blocks?.length || 0);
-        contextContent += `\n[[${item.pageName}]]\n`;
-        if (item.blocks && item.blocks.length > 0) {
-          contextContent += '```markdown\n';
-          item.blocks.forEach((block) => {
-            const content = block.content || '';
-            const level = block.level || 0;
-            const indent = '  '.repeat(level);
-            contextContent += `${indent}- ${content || '(empty block)'}\n`;
-          });
-          contextContent += '```\n';
-        } else if (item.excerpt) {
-          contextContent += `${item.excerpt}\n`;
-        }
-      }
-      contextContent += `\nYou have full access to the above content. Read and respond based on the actual content provided.\n`;
-    }
+    const systemPrompt = buildSystemPrompt(context);
 
     const fullMessages = [
-      { role: 'system', content: systemPrompt + contextContent },
+      { role: 'system', content: systemPrompt },
       ...messages,
     ];
 
@@ -196,98 +147,10 @@ KEY RULES:
     messages: Array<{ role: string; content: string }>,
     context?: Array<{ pageName: string; excerpt: string; blocks?: Array<{ content: string; id?: string; level?: number }> }>
   ): Promise<string> {
-    const today = new Date();
-    const dateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-    
-    const systemPrompt = `You are an AI assistant helping users interact with their Logseq knowledge base. 
-Current date: ${dateStr}
-
-IMPORTANT: You have DIRECT ACCESS to the user's Logseq graph. You can read any page or journal entry from their knowledge base. When the user asks about specific pages or journal entries, the system will provide you with the full content of those pages before you respond. Never say you don't have access - you DO have access!
-
-When you reference content from Logseq, cite the source page or block clearly.
-Format citations as: [[Page Name]] or ((block-id))
-
-When displaying journal or page contents to users, format them as markdown code blocks with proper indentation:
-\`\`\`markdown
-- Top level bullet
-  - Nested bullet
-    - Deeper nested bullet
-\`\`\`
-
-CRITICAL: When users request to create, update, or add content to journal entries or pages, you MUST ACTUALLY PERFORM THE OPERATION - NEVER say "simulated", "would look like", or "I'll simulate". The system will automatically execute file operations when you provide the LOGSEQ_ACTION command.
-
-When the user requests file operations, respond naturally AND include a LOGSEQ_ACTION JSON structure at the end. The system will automatically execute it. Format it like this:
-
-<LOGSEQ_ACTION>
-{
-  "action": "create_journal" | "create_page" | "append_to_page",
-  "date": "YYYY-MM-DD" (for journal entries - use ${dateStr} for today),
-  "pageName": "Page Name" (for pages - do NOT include "journals/" prefix),
-  "content": "the content to write in Logseq format (use - for bullets)"
-}
-</LOGSEQ_ACTION>
-
-EXAMPLES:
-- User: "Create a journal entry for today about my meeting" 
-  → Response: "I'll create a journal entry for today about your meeting."
-  → Then: <LOGSEQ_ACTION>{"action":"create_journal","date":"${dateStr}","content":"- Had a productive meeting..."}</LOGSEQ_ACTION>
-
-- User: "Update my journal for today" or "Add 'testing' to today's journal"
-  → Response: "I've added that to today's journal entry."
-  → Then: <LOGSEQ_ACTION>{"action":"append_to_page","pageName":"journals/${dateStr.replace(/-/g, '_')}","content":"\n- testing"}</LOGSEQ_ACTION>
-
-- User: "Create a page called Projects with my todo list"
-  → Response: "I've created the Projects page with your todo list."
-  → Then: <LOGSEQ_ACTION>{"action":"create_page","pageName":"Projects","content":"- [ ] Project 1\n- [ ] Project 2"}</LOGSEQ_ACTION>
-
-- User: "Add a note to my Projects page"
-  → Response: "I've added the note to your Projects page."
-  → Then: <LOGSEQ_ACTION>{"action":"append_to_page","pageName":"Projects","content":"\n- New note here"}</LOGSEQ_ACTION>
-
-KEY RULES:
-1. NEVER say "simulated" or "would look like" - these operations ARE REAL and WILL execute
-2. For journal entries, use "create_journal" action with date in YYYY-MM-DD format
-3. For updating existing journal pages, use "append_to_page" with pageName like "journals/2025_10_29" (YYYY_MM_DD format)
-4. Always respond confidently that you've performed the operation, then include the LOGSEQ_ACTION tag
-5. Format content in Logseq style: use "- " for bullets, proper indentation for child blocks
-6. Only include LOGSEQ_ACTION when user explicitly requests file operations`;
-
-    let contextContent = '';
-    if (context && Array.isArray(context) && context.length > 0) {
-      console.log('[llm/provider] Building context content from', context.length, 'items');
-      contextContent = `\n\nRelevant Logseq context:\n`;
-      for (const item of context) {
-        console.log('[llm/provider] Adding context item:', item.pageName, 'blocks:', item.blocks?.length || 0);
-        contextContent += `\n[[${item.pageName}]]\n`;
-        if (item.blocks && item.blocks.length > 0) {
-          // Include ALL blocks for full page/journal content, formatted as markdown
-          contextContent += '```markdown\n';
-          item.blocks.forEach((block, idx) => {
-            const content = block.content || '';
-            const level = block.level || 0;
-            console.log(`[llm/provider] Adding block ${idx}: level=${level}, content='${content}' (length=${content.length})`);
-            // Format blocks with proper indentation
-            const indent = '  '.repeat(level);
-            contextContent += `${indent}- ${content || '(empty block)'}\n`;
-          });
-          contextContent += '```\n';
-        } else if (item.excerpt) {
-          // Fallback to excerpt if no blocks
-          console.log('[llm/provider] Using excerpt:', item.excerpt.substring(0, 100));
-          contextContent += `${item.excerpt}\n`;
-        } else {
-          console.log('[llm/provider] WARNING: No blocks or excerpt for', item.pageName);
-        }
-      }
-      contextContent += `\nYou have full access to the above content. Read and respond based on the actual content provided.\n`;
-      console.log('[llm/provider] Final context content length:', contextContent.length);
-      console.log('[llm/provider] Context content preview:', contextContent.substring(0, 500));
-    } else {
-      console.log('[llm/provider] WARNING: No context provided to LLM');
-    }
+    const systemPrompt = buildSystemPrompt(context);
 
     const fullMessages = [
-      { role: 'system', content: systemPrompt + contextContent },
+      { role: 'system', content: systemPrompt },
       ...messages,
     ];
 
@@ -313,27 +176,415 @@ KEY RULES:
   }
 }
 
+export type ProviderType = 'groq' | 'openai' | 'anthropic' | 'ollama';
+
+export function createProvider(providerType: ProviderType, config: { apiKey?: string; model?: string; endpoint?: string }): LLMProvider {
+  switch (providerType) {
+    case 'groq':
+      if (!config.apiKey) {
+        throw new Error('Groq API key not configured');
+      }
+      return new GroqProvider(config.apiKey, config.model || 'llama-3.3-70b-versatile');
+    case 'openai':
+      if (!config.apiKey) {
+        throw new Error('OpenAI API key not configured');
+      }
+      return new OpenAIProvider(config.apiKey, config.model || 'gpt-4');
+    case 'anthropic':
+      if (!config.apiKey) {
+        throw new Error('Anthropic API key not configured');
+      }
+      return new AnthropicProvider(config.apiKey, config.model || 'claude-3-opus-20240229');
+    case 'ollama':
+      return new OllamaProvider(config.endpoint || 'http://localhost:11434', config.model || 'llama2');
+    default:
+      throw new Error(`Unsupported provider: ${providerType}`);
+  }
+}
+
 export async function chatWithLLM(
-  provider: 'groq',
+  provider: ProviderType,
   messages: Array<{ role: string; content: string }>,
   context?: Array<{ pageName: string; excerpt: string; blocks?: Array<{ content: string; id?: string; level?: number }> }>
 ): Promise<string> {
   const { getSettings } = await import('../store/settings');
   const settings = getSettings();
 
-  let llmProvider: LLMProvider;
-
-  switch (provider) {
-    case 'groq':
-      if (!settings.apiKey) {
-        throw new Error('Groq API key not configured');
-      }
-      llmProvider = new GroqProvider(settings.apiKey, settings.model);
-      break;
-    default:
-      throw new Error(`Unsupported provider: ${provider}`);
+  const providerConfig = settings.providers?.[provider];
+  if (!providerConfig) {
+    throw new Error(`Provider ${provider} not configured`);
   }
 
+  const llmProvider = createProvider(provider, providerConfig);
   return llmProvider.chat(messages, context);
+}
+
+// OpenAI Provider Implementation
+class OpenAIProvider implements LLMProvider {
+  constructor(private apiKey: string, private model: string) {}
+  
+  getName(): string { return 'openai'; }
+  getModels(): string[] { return ['gpt-4', 'gpt-4-turbo', 'gpt-3.5-turbo']; }
+  supportsStreaming(): boolean { return true; }
+  
+  async chat(
+    messages: Array<{ role: string; content: string }>,
+    context?: Array<{ pageName: string; excerpt: string; blocks?: Array<{ content: string; id?: string; level?: number }> }>
+  ): Promise<string> {
+    const systemPrompt = buildSystemPrompt(context);
+    const fullMessages = [
+      { role: 'system', content: systemPrompt },
+      ...messages,
+    ];
+
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${this.apiKey}`,
+      },
+      body: JSON.stringify({
+        model: this.model,
+        messages: fullMessages,
+      }),
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ error: 'Unknown error' }));
+      throw new Error(`OpenAI API error: ${JSON.stringify(error)}`);
+    }
+
+    const data = await response.json();
+    return data.choices[0]?.message?.content || '';
+  }
+
+  async chatStream(
+    messages: Array<{ role: string; content: string }>,
+    context: Array<{ pageName: string; excerpt: string; blocks?: Array<{ content: string; id?: string; level?: number }> }> | undefined,
+    onToken: (token: string) => void
+  ): Promise<string> {
+    const systemPrompt = buildSystemPrompt(context);
+    const fullMessages = [
+      { role: 'system', content: systemPrompt },
+      ...messages,
+    ];
+
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${this.apiKey}`,
+      },
+      body: JSON.stringify({
+        model: this.model,
+        messages: fullMessages,
+        stream: true,
+      }),
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ error: 'Unknown error' }));
+      throw new Error(`OpenAI API error: ${JSON.stringify(error)}`);
+    }
+
+    if (!response.body) {
+      throw new Error('No response body');
+    }
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let fullContent = '';
+    let buffer = '';
+
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+
+        for (const line of lines) {
+          if (line.trim() === '') continue;
+          if (line.startsWith('data: ')) {
+            const data = line.slice(6);
+            if (data === '[DONE]') {
+              return fullContent;
+            }
+
+            try {
+              const json = JSON.parse(data);
+              const content = json.choices?.[0]?.delta?.content || '';
+              if (content) {
+                fullContent += content;
+                onToken(content);
+              }
+            } catch (e) {
+              console.error('[llm/provider] Failed to parse SSE chunk:', e);
+            }
+          }
+        }
+      }
+
+      if (buffer.trim()) {
+        if (buffer.startsWith('data: ')) {
+          const data = buffer.slice(6);
+          if (data !== '[DONE]') {
+            try {
+              const json = JSON.parse(data);
+              const content = json.choices?.[0]?.delta?.content || '';
+              if (content) {
+                fullContent += content;
+                onToken(content);
+              }
+            } catch (e) {
+              console.error('[llm/provider] Failed to parse final SSE chunk:', e);
+            }
+          }
+        }
+      }
+
+      return fullContent;
+    } catch (error) {
+      console.error('[llm/provider] Streaming error:', error);
+      throw error;
+    } finally {
+      reader.releaseLock();
+    }
+  }
+}
+
+// Anthropic Provider Implementation
+class AnthropicProvider implements LLMProvider {
+  constructor(private apiKey: string, private model: string) {}
+  
+  getName(): string { return 'anthropic'; }
+  getModels(): string[] { return ['claude-3-opus-20240229', 'claude-3-sonnet-20240229', 'claude-3-haiku-20240307']; }
+  supportsStreaming(): boolean { return true; }
+  
+  async chat(
+    messages: Array<{ role: string; content: string }>,
+    context?: Array<{ pageName: string; excerpt: string; blocks?: Array<{ content: string; id?: string; level?: number }> }>
+  ): Promise<string> {
+    const systemPrompt = buildSystemPrompt(context);
+    // Anthropic requires system message separate and messages array
+    const anthropicMessages = messages.map(m => ({
+      role: m.role === 'assistant' ? 'assistant' : 'user',
+      content: m.content,
+    }));
+
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': this.apiKey,
+        'anthropic-version': '2023-06-01',
+      },
+      body: JSON.stringify({
+        model: this.model,
+        max_tokens: 4096,
+        system: systemPrompt,
+        messages: anthropicMessages,
+      }),
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ error: 'Unknown error' }));
+      throw new Error(`Anthropic API error: ${JSON.stringify(error)}`);
+    }
+
+    const data = await response.json();
+    return data.content?.[0]?.text || '';
+  }
+
+  async chatStream(
+    messages: Array<{ role: string; content: string }>,
+    context: Array<{ pageName: string; excerpt: string; blocks?: Array<{ content: string; id?: string; level?: number }> }> | undefined,
+    onToken: (token: string) => void
+  ): Promise<string> {
+    const systemPrompt = buildSystemPrompt(context);
+    const anthropicMessages = messages.map(m => ({
+      role: m.role === 'assistant' ? 'assistant' : 'user',
+      content: m.content,
+    }));
+
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': this.apiKey,
+        'anthropic-version': '2023-06-01',
+      },
+      body: JSON.stringify({
+        model: this.model,
+        max_tokens: 4096,
+        system: systemPrompt,
+        messages: anthropicMessages,
+        stream: true,
+      }),
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ error: 'Unknown error' }));
+      throw new Error(`Anthropic API error: ${JSON.stringify(error)}`);
+    }
+
+    if (!response.body) {
+      throw new Error('No response body');
+    }
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let fullContent = '';
+    let buffer = '';
+
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+
+        for (const line of lines) {
+          if (line.trim() === '') continue;
+          if (line.startsWith('data: ')) {
+            const data = line.slice(6);
+            try {
+              const json = JSON.parse(data);
+              if (json.type === 'content_block_delta' && json.delta?.text) {
+                fullContent += json.delta.text;
+                onToken(json.delta.text);
+              } else if (json.type === 'message_stop') {
+                return fullContent;
+              }
+            } catch (e) {
+              console.error('[llm/provider] Failed to parse SSE chunk:', e);
+            }
+          }
+        }
+      }
+
+      return fullContent;
+    } catch (error) {
+      console.error('[llm/provider] Streaming error:', error);
+      throw error;
+    } finally {
+      reader.releaseLock();
+    }
+  }
+}
+
+// Ollama Provider Implementation
+class OllamaProvider implements LLMProvider {
+  constructor(private endpoint: string, private model: string) {}
+  
+  getName(): string { return 'ollama'; }
+  getModels(): string[] { return ['llama2', 'mistral', 'codellama']; }
+  supportsStreaming(): boolean { return true; }
+  
+  async chat(
+    messages: Array<{ role: string; content: string }>,
+    context?: Array<{ pageName: string; excerpt: string; blocks?: Array<{ content: string; id?: string; level?: number }> }>
+  ): Promise<string> {
+    const systemPrompt = buildSystemPrompt(context);
+    const fullMessages = [
+      { role: 'system', content: systemPrompt },
+      ...messages,
+    ];
+
+    const response = await fetch(`${this.endpoint}/api/chat`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: this.model,
+        messages: fullMessages,
+        stream: false,
+      }),
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ error: 'Unknown error' }));
+      throw new Error(`Ollama API error: ${JSON.stringify(error)}`);
+    }
+
+    const data = await response.json();
+    return data.message?.content || '';
+  }
+
+  async chatStream(
+    messages: Array<{ role: string; content: string }>,
+    context: Array<{ pageName: string; excerpt: string; blocks?: Array<{ content: string; id?: string; level?: number }> }> | undefined,
+    onToken: (token: string) => void
+  ): Promise<string> {
+    const systemPrompt = buildSystemPrompt(context);
+    const fullMessages = [
+      { role: 'system', content: systemPrompt },
+      ...messages,
+    ];
+
+    const response = await fetch(`${this.endpoint}/api/chat`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: this.model,
+        messages: fullMessages,
+        stream: true,
+      }),
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ error: 'Unknown error' }));
+      throw new Error(`Ollama API error: ${JSON.stringify(error)}`);
+    }
+
+    if (!response.body) {
+      throw new Error('No response body');
+    }
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let fullContent = '';
+    let buffer = '';
+
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+
+        for (const line of lines) {
+          if (line.trim() === '') continue;
+          try {
+            const json = JSON.parse(line);
+            if (json.message?.content) {
+              fullContent += json.message.content;
+              onToken(json.message.content);
+            } else if (json.done) {
+              return fullContent;
+            }
+          } catch (e) {
+            // Skip invalid JSON lines
+          }
+        }
+      }
+
+      return fullContent;
+    } catch (error) {
+      console.error('[llm/provider] Streaming error:', error);
+      throw error;
+    } finally {
+      reader.releaseLock();
+    }
+  }
 }
 

@@ -3,9 +3,13 @@ import { Settings, ContextSettings } from '../types';
 
 const defaultSettings: Settings = {
   logseqPath: '',
-  apiKey: '',
-  model: 'llama-3.3-70b-versatile',
   provider: 'groq',
+  providers: {
+    groq: {
+      apiKey: '',
+      model: 'llama-3.3-70b-versatile',
+    },
+  },
   theme: 'system',
 };
 
@@ -35,23 +39,78 @@ const store = new Store<Settings>({
   defaults: defaultSettings,
 });
 
-function migrateDeprecatedModels(settings: Settings): Settings {
-  // Auto-migrate deprecated models to their replacements
-  if (settings.model && deprecatedModelMap[settings.model]) {
-    const replacement = deprecatedModelMap[settings.model];
-    console.log(`Migrating deprecated model ${settings.model} to ${replacement}`);
-    store.set('model', replacement);
-    return { ...settings, model: replacement };
+function migrateSettings(settings: Partial<Settings>): Settings {
+  const migrated: Settings = {
+    logseqPath: settings.logseqPath || '',
+    provider: settings.provider || 'groq',
+    providers: settings.providers || {},
+    theme: settings.theme || 'system',
+    ...(settings.contextSettings && { contextSettings: settings.contextSettings }),
+  };
+
+  // Migrate deprecated apiKey/model to providers.groq structure
+  if (settings.apiKey || settings.model) {
+    console.log('[settings] Migrating legacy Groq settings to providers structure');
+    if (!migrated.providers.groq) {
+      migrated.providers.groq = {
+        apiKey: settings.apiKey || '',
+        model: settings.model || 'llama-3.3-70b-versatile',
+      };
+    } else {
+      // Merge with existing provider config
+      migrated.providers.groq.apiKey = settings.apiKey || migrated.providers.groq.apiKey;
+      migrated.providers.groq.model = settings.model || migrated.providers.groq.model;
+    }
+    // Set provider to groq if not set
+    if (!migrated.provider) {
+      migrated.provider = 'groq';
+    }
+    // Write migrated settings back (only include contextSettings if it exists)
+    const settingsToStore: Partial<Settings> = {
+      ...migrated,
+    };
+    if (!settingsToStore.contextSettings) {
+      delete settingsToStore.contextSettings;
+    }
+    store.set(settingsToStore);
+    // Clear deprecated fields
+    store.delete('apiKey');
+    store.delete('model');
   }
-  return settings;
+
+  // Migrate deprecated models
+  if (migrated.providers.groq?.model && deprecatedModelMap[migrated.providers.groq.model]) {
+    const replacement = deprecatedModelMap[migrated.providers.groq.model];
+    console.log(`[settings] Migrating deprecated model ${migrated.providers.groq.model} to ${replacement}`);
+    migrated.providers.groq.model = replacement;
+    store.set('providers.groq.model', replacement);
+  }
+
+  return migrated as Settings;
 }
 
 export function getSettings(): Settings {
-  const settings = store.store;
-  return migrateDeprecatedModels(settings);
+  const rawSettings = store.store;
+  const migrated = migrateSettings(rawSettings);
+  return migrated;
 }
 
 export function setSettings(updates: Partial<Settings>): void {
-  store.set(updates);
+  const currentSettings = getSettings();
+  const updatedSettings: Partial<Settings> = { ...currentSettings };
+  
+  // Only include defined values
+  if (updates.logseqPath !== undefined) updatedSettings.logseqPath = updates.logseqPath;
+  if (updates.provider !== undefined) updatedSettings.provider = updates.provider;
+  if (updates.providers !== undefined) updatedSettings.providers = updates.providers;
+  if (updates.theme !== undefined) updatedSettings.theme = updates.theme;
+  if (updates.contextSettings !== undefined) updatedSettings.contextSettings = updates.contextSettings;
+  
+  // Remove undefined contextSettings if it was explicitly set to undefined
+  if ('contextSettings' in updates && updates.contextSettings === undefined) {
+    delete updatedSettings.contextSettings;
+  }
+  
+  store.set(updatedSettings);
 }
 
