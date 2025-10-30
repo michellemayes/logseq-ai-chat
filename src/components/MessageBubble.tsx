@@ -154,6 +154,14 @@ export default function MessageBubble({ message }: MessageBubbleProps) {
           message.content
         )}
       </div>
+      {message.createdAt && (
+        <div className={`message-timestamp ${message.role}`} aria-hidden>
+          {new Date(message.createdAt).toLocaleString(undefined, {
+            year: 'numeric', month: 'short', day: '2-digit',
+            hour: '2-digit', minute: '2-digit'
+          })}
+        </div>
+      )}
       {message.citations && message.citations.length > 0 && (
         <div className="citations">
           <div 

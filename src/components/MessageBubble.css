@@ -4,6 +4,7 @@
   border-radius: 12px;
   word-wrap: break-word;
   position: relative;
+  margin-bottom: 18px; /* space for timestamp under bubble */
 }
 
 .message-bubble.user {
@@ -25,6 +26,24 @@
 
 .message-content {
   line-height: 1.6;
+  position: relative;
+}
+.message-timestamp {
+  position: absolute;
+  bottom: -16px;
+  font-size: 11px;
+  color: var(--text-secondary);
+  width: 100%;
+}
+
+.message-bubble.assistant .message-timestamp {
+  left: 0;
+  text-align: left;
+}
+
+.message-bubble.user .message-timestamp {
+  right: 0;
+  text-align: right;
 }
 
 .message-content p {

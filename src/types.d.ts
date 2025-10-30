@@ -1,6 +1,7 @@
 export interface Message {
   role: 'user' | 'assistant';
   content: string;
+  createdAt?: number;
   citations?: Array<{ pageName: string; excerpt: string; filePath?: string }>;
   noContextWarning?: boolean;
   action?: {

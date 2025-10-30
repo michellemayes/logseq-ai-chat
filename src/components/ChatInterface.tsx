@@ -129,7 +129,7 @@ export default function ChatInterface({ onOpenSidebar, onOpenConversations, conv
       return;
     }
 
-    const userMessage: Message = { role: 'user', content };
+    const userMessage: Message = { role: 'user', content, createdAt: Date.now() };
     setMessages((prev) => [...prev, userMessage]);
     setLoading(true);
 
@@ -749,6 +749,7 @@ export default function ChatInterface({ onOpenSidebar, onOpenConversations, conv
       const initialAssistantMessage: Message = {
         role: 'assistant',
         content: '',
+        createdAt: Date.now(),
         citations: context.map((c: { pageName: string; excerpt: string; filePath?: string }) => ({
           pageName: c.pageName,
           excerpt: c.excerpt,
