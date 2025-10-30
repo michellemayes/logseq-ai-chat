@@ -12,13 +12,16 @@ export interface ContextSettings {
 export interface Message {
   role: 'user' | 'assistant';
   content: string;
+  createdAt?: number;
   citations?: Array<{ pageName: string; excerpt: string; filePath?: string }>;
   noContextWarning?: boolean;
   action?: {
-    type: 'create_journal' | 'create_page' | 'append_to_page';
+    type: 'create_journal' | 'create_page' | 'append_to_page' | 'update_task_status';
     date?: string;
     pageName?: string;
-    content: string;
+    content?: string;
+    blockId?: string;
+    newStatus?: string;
   };
 }
 
