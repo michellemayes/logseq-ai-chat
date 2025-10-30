@@ -115,6 +115,12 @@ export default function ChatInterface({ onOpenSidebar, onOpenConversations, conv
   }, [currentConversationId, onConversationChange]);
 
   const handleSend = async (content: string) => {
+    // Reset duplicate action guard for a new user message
+    if (lastActionKeyRef) {
+      // Allow the same action key in subsequent messages within the conversation
+      (lastActionKeyRef as any).current = undefined;
+      console.log('[ChatInterface] Reset lastActionKeyRef for new message');
+    }
     const providerConfig = settings.providers?.[settings.provider];
     const hasValidConfig = providerConfig && (
       settings.provider === 'ollama' ? true : 'apiKey' in providerConfig && !!providerConfig.apiKey
@@ -216,16 +222,41 @@ export default function ChatInterface({ onOpenSidebar, onOpenConversations, conv
             const tasks = await window.electronAPI.queryTasksByStatus('TODO');
             if (tasks.length > 0) {
               console.log('[ChatInterface] Found', tasks.length, 'TODO tasks');
-              // Add task context to first page or create a summary
-              if (context.length === 0) {
+              // Group tasks by pageName and add each page as a context entry
+              const tasksByPage = new Map<string, Array<{ taskStatus: string; content: string; id?: string; level: number; pageName: string }>>();
+              for (const t of tasks.slice(0, 20)) {
+                if (!tasksByPage.has(t.pageName)) {
+                  tasksByPage.set(t.pageName, []);
+                }
+                tasksByPage.get(t.pageName)!.push({
+                  taskStatus: t.taskStatus,
+                  content: t.content,
+                  id: t.id,
+                  level: t.level,
+                  pageName: t.pageName,
+                });
+              }
+              // Add each page as a separate context entry
+              for (const [pageName, pageTasks] of tasksByPage.entries()) {
+                if (context.length >= maxPages || totalBlocksCount >= maxTotalBlocks) break;
                 context.push({
-                  pageName: 'Tasks',
-                  excerpt: `Found ${tasks.length} TODO tasks`,
-                  blocks: tasks.slice(0, 10).map((t: { taskStatus: string; content: string; id?: string; level: number }) => ({
+                  pageName,
+                  excerpt: `Found ${pageTasks.length} TODO task${pageTasks.length > 1 ? 's' : ''} on this page`,
+                  blocks: pageTasks.map((t) => ({
                     content: `${t.taskStatus} ${t.content}`,
                     id: t.id,
                     level: t.level,
                   })),
+                });
+                totalBlocksCount += pageTasks.length;
+              }
+            } else {
+              // Explicitly inform the LLM that no TODO tasks exist
+              if (context.length === 0) {
+                context.push({
+                  pageName: 'Tasks',
+                  excerpt: 'No TODO tasks found',
+                  blocks: [],
                 });
               }
             }
@@ -233,15 +264,40 @@ export default function ChatInterface({ onOpenSidebar, onOpenConversations, conv
             const tasks = await window.electronAPI.queryTasksByStatus('DOING');
             if (tasks.length > 0) {
               console.log('[ChatInterface] Found', tasks.length, 'DOING tasks');
-              if (context.length === 0) {
+              // Group tasks by pageName and add each page as a context entry
+              const tasksByPage = new Map<string, Array<{ taskStatus: string; content: string; id?: string; level: number; pageName: string }>>();
+              for (const t of tasks.slice(0, 20)) {
+                if (!tasksByPage.has(t.pageName)) {
+                  tasksByPage.set(t.pageName, []);
+                }
+                tasksByPage.get(t.pageName)!.push({
+                  taskStatus: t.taskStatus,
+                  content: t.content,
+                  id: t.id,
+                  level: t.level,
+                  pageName: t.pageName,
+                });
+              }
+              // Add each page as a separate context entry
+              for (const [pageName, pageTasks] of tasksByPage.entries()) {
+                if (context.length >= maxPages || totalBlocksCount >= maxTotalBlocks) break;
                 context.push({
-                  pageName: 'Tasks',
-                  excerpt: `Found ${tasks.length} DOING tasks`,
-                  blocks: tasks.slice(0, 10).map((t: { taskStatus: string; content: string; id?: string; level: number }) => ({
+                  pageName,
+                  excerpt: `Found ${pageTasks.length} DOING task${pageTasks.length > 1 ? 's' : ''} on this page`,
+                  blocks: pageTasks.map((t) => ({
                     content: `${t.taskStatus} ${t.content}`,
                     id: t.id,
                     level: t.level,
                   })),
+                });
+                totalBlocksCount += pageTasks.length;
+              }
+            } else {
+              if (context.length === 0) {
+                context.push({
+                  pageName: 'Tasks',
+                  excerpt: 'No DOING tasks found',
+                  blocks: [],
                 });
               }
             }
@@ -249,15 +305,40 @@ export default function ChatInterface({ onOpenSidebar, onOpenConversations, conv
             const tasks = await window.electronAPI.queryTasksDueThisWeek();
             if (tasks.length > 0) {
               console.log('[ChatInterface] Found', tasks.length, 'tasks due this week');
-              if (context.length === 0) {
+              // Group tasks by pageName and add each page as a context entry
+              const tasksByPage = new Map<string, Array<{ taskStatus: string; content: string; id?: string; level: number; pageName: string }>>();
+              for (const t of tasks.slice(0, 20)) {
+                if (!tasksByPage.has(t.pageName)) {
+                  tasksByPage.set(t.pageName, []);
+                }
+                tasksByPage.get(t.pageName)!.push({
+                  taskStatus: t.taskStatus,
+                  content: t.content,
+                  id: t.id,
+                  level: t.level,
+                  pageName: t.pageName,
+                });
+              }
+              // Add each page as a separate context entry
+              for (const [pageName, pageTasks] of tasksByPage.entries()) {
+                if (context.length >= maxPages || totalBlocksCount >= maxTotalBlocks) break;
                 context.push({
-                  pageName: 'Tasks',
-                  excerpt: `Found ${tasks.length} tasks due this week`,
-                  blocks: tasks.slice(0, 10).map((t: { taskStatus: string; content: string; id?: string; level: number }) => ({
+                  pageName,
+                  excerpt: `Found ${pageTasks.length} task${pageTasks.length > 1 ? 's' : ''} due this week on this page`,
+                  blocks: pageTasks.map((t) => ({
                     content: `${t.taskStatus} ${t.content}`,
                     id: t.id,
                     level: t.level,
                   })),
+                });
+                totalBlocksCount += pageTasks.length;
+              }
+            } else {
+              if (context.length === 0) {
+                context.push({
+                  pageName: 'Tasks',
+                  excerpt: 'No tasks due this week',
+                  blocks: [],
                 });
               }
             }
@@ -713,17 +794,27 @@ export default function ChatInterface({ onOpenSidebar, onOpenConversations, conv
             setIsStreaming(false);
             setStreamingContent('');
 
+            console.log('[ChatInterface] onComplete called. Full content length:', fullContent.length);
+            console.log('[ChatInterface] Full content preview:', fullContent.substring(0, 500));
+
             // Parse response for LOGSEQ_ACTION commands (robust parsing)
             // Find all LOGSEQ_ACTION tags (multiple actions may be present)
             const tagMatches = Array.from(fullContent.matchAll(/<LOGSEQ_ACTION>([\s\S]*?)<\/LOGSEQ_ACTION>/g));
             const fencedMatch = fullContent.match(/```(?:json|JSON)?[\r\n]+([\s\S]*?)```/);
             const jsonLikeMatch = fullContent.match(/\{[\s\S]*\}/);
 
+            console.log('[ChatInterface] Found', tagMatches.length, 'LOGSEQ_ACTION tags');
+            console.log('[ChatInterface] Fenced match:', fencedMatch ? 'found' : 'not found');
+            console.log('[ChatInterface] JSON-like match:', jsonLikeMatch ? 'found' : 'not found');
+
             const tryParse = (raw: string | undefined) => {
               if (!raw) return undefined;
               try {
-                return JSON.parse(raw.trim());
-              } catch {
+                const parsed = JSON.parse(raw.trim());
+                console.log('[ChatInterface] Successfully parsed JSON:', parsed);
+                return parsed;
+              } catch (e) {
+                console.log('[ChatInterface] Failed to parse JSON:', raw.substring(0, 100), 'error:', e);
                 return undefined;
               }
             };
@@ -732,6 +823,7 @@ export default function ChatInterface({ onOpenSidebar, onOpenConversations, conv
             const actions: Array<{ type?: 'create_journal' | 'create_page' | 'append_to_page' | 'update_task_status'; action?: string; date?: string; pageName?: string; content?: string; blockId?: string; newStatus?: string }> = [];
             
             for (const match of tagMatches) {
+              console.log('[ChatInterface] Processing LOGSEQ_ACTION tag:', match[1].substring(0, 200));
               const parsed = tryParse(match[1]);
               if (parsed) {
                 // Normalize possible 'action' property into 'type'
@@ -739,23 +831,31 @@ export default function ChatInterface({ onOpenSidebar, onOpenConversations, conv
                   parsed.type = parsed.action as any;
                 }
                 if (parsed.type) {
+                  console.log('[ChatInterface] Adding action:', parsed.type, parsed);
                   actions.push(parsed);
+                } else {
+                  console.log('[ChatInterface] Parsed object has no type or action:', parsed);
                 }
               }
             }
             
             // Fallback to fenced code block or JSON-like match if no tags found
             if (actions.length === 0) {
+              console.log('[ChatInterface] No actions found in tags, trying fallback parsing');
               const fallbackAction = tryParse(fencedMatch?.[1]) || tryParse(jsonLikeMatch?.[0]);
               if (fallbackAction) {
                 if (!fallbackAction.type && fallbackAction.action) {
                   fallbackAction.type = fallbackAction.action as any;
                 }
                 if (fallbackAction.type) {
+                  console.log('[ChatInterface] Adding fallback action:', fallbackAction.type, fallbackAction);
                   actions.push(fallbackAction);
                 }
               }
             }
+            
+            console.log('[ChatInterface] Total actions parsed:', actions.length);
+            console.log('[ChatInterface] Actions:', JSON.stringify(actions, null, 2));
             
             // Always strip LOGSEQ_ACTION tags from display content
             const displayContent = stripActionTags(fullContent);
@@ -763,6 +863,8 @@ export default function ChatInterface({ onOpenSidebar, onOpenConversations, conv
             // Don't infer actions - only execute when explicitly included in LOGSEQ_ACTION tag
             if (actions.length === 0) {
               console.log('[ChatInterface] No LOGSEQ_ACTION found - not executing any file operations.');
+            } else {
+              console.log('[ChatInterface] Found', actions.length, 'actions to execute. logseqPath:', settings.logseqPath);
             }
 
             // Update the final message with parsed content (actions stored separately)
@@ -784,13 +886,18 @@ export default function ChatInterface({ onOpenSidebar, onOpenConversations, conv
 
             // Auto-execute all file operations sequentially
             if (actions.length > 0 && settings.logseqPath) {
+              console.log('[ChatInterface] Starting action execution. actions.length:', actions.length, 'logseqPath:', settings.logseqPath);
               (async () => {
                 const executedActions: Array<{ type: string; pageName?: string; date?: string; fileName?: string }> = [];
                 
                 for (const action of actions) {
-                  if (!action.type) continue;
+                  console.log('[ChatInterface] Processing action:', action.type, action);
+                  if (!action.type) {
+                    console.log('[ChatInterface] Skipping action - no type:', action);
+                    continue;
+                  }
                   
-                  const actionKey = `${action.type}|${action.pageName || ''}|${action.date || ''}|${(action.content || '').trim()}`;
+                  const actionKey = `${action.type}|${action.pageName || ''}|${action.date || ''}|${(action.content || '').trim()}|${action.blockId || ''}|${action.newStatus || ''}`;
                   if (lastActionKeyRef.current === actionKey) {
                     console.log('[ChatInterface] Skipping duplicate action execution:', actionKey);
                     continue;
@@ -798,6 +905,7 @@ export default function ChatInterface({ onOpenSidebar, onOpenConversations, conv
 
                   // Policy: if no Logseq context, do not update existing files; only allow creating pages with explicit approval.
                   if (noContextWarning) {
+                    console.log('[ChatInterface] No context warning is set. Checking action type:', action.type);
                     if (action.type === 'create_page' && action.pageName) {
                       const ok = window.confirm(`No Logseq context detected. Create new page "${action.pageName}"?`);
                       if (!ok) {
@@ -832,26 +940,39 @@ export default function ChatInterface({ onOpenSidebar, onOpenConversations, conv
                       const fileName = filePath.split('/').pop() || '';
                       executedActions.push({ type: 'create_journal', date: action.date, fileName });
                       lastActionKeyRef.current = actionKey;
+                      console.log('[ChatInterface] Successfully executed create_journal:', fileName);
                     } else if (action.type === 'create_page' && action.pageName) {
                       console.log('[ChatInterface] Executing create_page for:', action.pageName, 'content length:', action.content?.length || 0);
                       filePath = await window.electronAPI.createPage(action.pageName, action.content || '');
                       const fileName = filePath.split('/').pop() || '';
                       executedActions.push({ type: 'create_page', pageName: action.pageName, fileName });
                       lastActionKeyRef.current = actionKey;
+                      console.log('[ChatInterface] Successfully executed create_page:', fileName);
                     } else if (action.type === 'append_to_page' && action.pageName) {
                       console.log('[ChatInterface] Executing append_to_page for:', action.pageName, 'content length:', action.content?.length || 0);
                       filePath = await window.electronAPI.appendToPage(action.pageName, action.content || '');
                       const fileName = filePath.split('/').pop() || '';
                       executedActions.push({ type: 'append_to_page', pageName: action.pageName, fileName });
                       lastActionKeyRef.current = actionKey;
+                      console.log('[ChatInterface] Successfully executed append_to_page:', fileName);
                     } else if (action.type === 'update_task_status' && action.pageName && action.blockId && action.newStatus) {
                       console.log('[ChatInterface] Executing update_task_status for:', action.pageName, 'block:', action.blockId, 'new status:', action.newStatus);
                       await window.electronAPI.updateTaskStatus(action.pageName, action.blockId, action.newStatus);
                       executedActions.push({ type: 'update_task_status', pageName: action.pageName, fileName: action.pageName.split('/').pop() || '' });
                       lastActionKeyRef.current = actionKey;
+                      console.log('[ChatInterface] Successfully executed update_task_status');
+                    } else {
+                      console.log('[ChatInterface] Action validation failed:', {
+                        type: action.type,
+                        hasPageName: !!action.pageName,
+                        hasBlockId: !!action.blockId,
+                        hasNewStatus: !!action.newStatus,
+                        hasDate: !!action.date
+                      });
                     }
                   } catch (err) {
-                    console.error('Failed to execute action:', err);
+                    console.error('[ChatInterface] Failed to execute action:', err);
+                    console.error('[ChatInterface] Action that failed:', action);
                     // Add error message
                     setMessages((prev) => [
                       ...prev,
@@ -865,6 +986,7 @@ export default function ChatInterface({ onOpenSidebar, onOpenConversations, conv
                 
                 // Update message with summary of all executed actions
                 if (executedActions.length > 0) {
+                  console.log('[ChatInterface] Updating message with summary of', executedActions.length, 'executed actions');
                   setMessages((prevMsgs) => {
                     const updated = [...prevMsgs];
                     const lastMsg = updated[updated.length - 1];
@@ -913,6 +1035,12 @@ export default function ChatInterface({ onOpenSidebar, onOpenConversations, conv
               })().catch(err => {
                 console.error('Error executing actions:', err);
               });
+            } else {
+              if (actions.length === 0) {
+                console.log('[ChatInterface] Actions not executed - no actions found');
+              } else if (!settings.logseqPath) {
+                console.log('[ChatInterface] Actions not executed - logseqPath not configured');
+              }
             }
             
             setLoading(false);

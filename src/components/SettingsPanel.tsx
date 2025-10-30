@@ -11,7 +11,6 @@ interface SettingsPanelProps {
 const PROVIDER_MODELS: Record<string, { label: string; value: string }[]> = {
   groq: [
     { label: 'Llama 3.3 70B Versatile (Recommended)', value: 'llama-3.3-70b-versatile' },
-    { label: 'Mistral Saba 24B', value: 'mistral-saba-24b' },
     { label: 'GPT OSS 120B', value: 'openai/gpt-oss-120b' },
     { label: 'Kimi K2 0905 Instruct', value: 'moonshotai/kimi-k2-instruct-0905' },
     { label: 'Llama 3.1 8B Instant', value: 'llama-3.1-8b-instant' },

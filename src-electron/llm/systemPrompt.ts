@@ -66,7 +66,7 @@ When displaying journal or page contents to users, format them as markdown code 
 
 CRITICAL: When users request to create, update, or add content to journal entries or pages, you MUST ACTUALLY PERFORM THE OPERATION - NEVER say "simulated", "would look like", or "I'll simulate". The system will automatically execute file operations when you provide the LOGSEQ_ACTION command.
 
-When the user requests file operations, respond naturally AND include a LOGSEQ_ACTION JSON structure at the end. The system will automatically execute it. Format it like this:
+When the user requests file operations, respond naturally AND include a LOGSEQ_ACTION JSON structure at the end. Do NOT mention the LOGSEQ_ACTION tag or draw attention to it - just include it naturally. The system will automatically execute it. Format it like this:
 
 <LOGSEQ_ACTION>
 {
@@ -96,15 +96,30 @@ EXAMPLES:
   → Response: "I've added the note to your Projects page."
   → Then: <LOGSEQ_ACTION>{"action":"append_to_page","pageName":"Projects","content":"\n- New note here"}</LOGSEQ_ACTION>
 
+- User: "Mark 'Review PR' as DONE"
+  → Response: "I've marked 'Review PR' as DONE."
+  → Context shows: - TODO Review PR [block-id: 65a1b2c3d4e5f6] [page: journals/2025_10_30]
+  → Then: <LOGSEQ_ACTION>{"action":"update_task_status","pageName":"journals/2025_10_30","blockId":"65a1b2c3d4e5f6","newStatus":"DONE"}</LOGSEQ_ACTION>
+  
+  If no block-id is shown in context (e.g., - TODO Review PR [page: journals/2025_10_30]):
+  → Then: <LOGSEQ_ACTION>{"action":"update_task_status","pageName":"journals/2025_10_30","blockId":"Review PR","newStatus":"DONE"}</LOGSEQ_ACTION>
+  
+  Note: 
+  - The pageName MUST match exactly what's shown in the context [page: ...] metadata for each block. Do NOT use generic names like "Tasks".
+  - If a block-id is shown in [block-id: ...], use that exact value. If no block-id is shown, use the task content text (without the status prefix like "TODO ").
+
 KEY RULES:
 1. NEVER say "simulated" or "would look like" - these operations ARE REAL and WILL execute
 2. For journal entries, use "create_journal" action with date in YYYY-MM-DD format
 3. For updating existing journal pages, use "append_to_page" with pageName like "journals/2025_10_29" (YYYY_MM_DD format)
-4. Always respond confidently that you've performed the operation, then include the LOGSEQ_ACTION tag
+4. Always respond confidently that you've performed the operation, then silently include the LOGSEQ_ACTION tag without mentioning it
 5. Format content in Logseq style: use "- " for bullets, proper indentation for child blocks
 6. Only include LOGSEQ_ACTION when user explicitly requests file operations
 7. For task status updates, use "update_task_status" action with pageName, blockId, and newStatus (TODO, DOING, DONE, etc.)
-8. When users ask about tasks, query relevant tasks and include them in your response`;
+8. When users ask about tasks, only discuss tasks that are present in the context below. If the context explicitly indicates no tasks (e.g., "No TODO tasks found"), respond accordingly and do not invent tasks
+9. CRITICAL: For task status updates, the pageName MUST match EXACTLY the page name shown in the context headers (e.g., "journals/2025_10_30" or "pages/ProjectName"). Use the exact pageName from the context, not a generic name like "Tasks"
+10. CRITICAL: For task status updates, the blockId MUST be extracted from the [block-id: ...] metadata shown in the context. If a block-id is shown, copy the exact value after "block-id: ". If no block-id is shown in the context, use the task content text (without the status prefix like "TODO "). Do NOT use placeholder values like "block-id-123"
+11. NEVER mention "LOGSEQ_ACTION" or "Here is the LOGSEQ_ACTION" in your response. Just include the tag at the end of your response`;
 
   let contextContent = '';
   if (context && Array.isArray(context) && context.length > 0) {
@@ -120,7 +135,9 @@ KEY RULES:
           const level = block.level || 0;
           const indent = '  '.repeat(level);
           const blockId = block.id ? ` [block-id: ${block.id}]` : '';
-          contextContent += `${indent}- ${content || '(empty block)'}${blockId}\n`;
+          // Include pageName in block for clarity, especially for tasks
+          const pageNameMeta = ` [page: ${item.pageName}]`;
+          contextContent += `${indent}- ${content || '(empty block)'}${blockId}${pageNameMeta}\n`;
         });
         contextContent += '```\n';
       } else if (item.excerpt) {
@@ -128,6 +145,9 @@ KEY RULES:
       }
     }
     contextContent += `\nYou have full access to the above content. Read and respond based on the actual content provided.\n`;
+    contextContent += `\nIMPORTANT: When updating task status:\n`;
+    contextContent += `- Use the EXACT pageName shown in [page: ...] metadata for each block. Do NOT use generic names like "Tasks".\n`;
+    contextContent += `- If [block-id: ...] is shown, use that exact block ID. If no block-id is shown, use the task content text (without status prefix like "TODO ").\n`;
   } else {
     console.log('[llm/provider] WARNING: No context provided to LLM');
   }

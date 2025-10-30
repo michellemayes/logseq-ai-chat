@@ -6,12 +6,6 @@
 - Bulk update properties
 - Extract properties from unstructured text
 
-### 5. Task management integration
-- Query TODO/DOING/DONE items
-- Update task status via chat
-- "What tasks are due this week?"
-- Generate task summaries from journals
-
 ### 6. Logseq query builder
 - Generate Logseq queries from natural language
 - "Show me all pages tagged #project with status active"
@@ -40,3 +34,9 @@
 - Move blocks between pages
 - Merge blocks
 - Convert blocks to pages
+
+Custom rules for LLM
+
+show timestamps in chat
+
+accurate updated at time in conversation export 

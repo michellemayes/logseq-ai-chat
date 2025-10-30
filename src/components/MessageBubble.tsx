@@ -3,6 +3,7 @@ import remarkGfm from 'remark-gfm';
 import { Message } from '../types';
 import './MessageBubble.css';
 import { useRef, useState, useLayoutEffect, useCallback } from 'react';
+import copyIcon from '../../svg_assets/copy-document-svgrepo-com.svg';
 
 interface MessageBubbleProps {
   message: Message;
@@ -16,6 +17,7 @@ export default function MessageBubble({ message }: MessageBubbleProps) {
   const [blockHoverId, setBlockHoverId] = useState<string | null>(null);
   const [blockPreview, setBlockPreview] = useState<string | null>(null);
   const [citationsExpanded, setCitationsExpanded] = useState(false);
+  const [copyLabel, setCopyLabel] = useState<'Copy' | 'Copied!'>('Copy');
 
   useLayoutEffect(() => {
     if (!tooltipVisible || !bubbleRef.current || !tooltipRef.current) return;
@@ -77,8 +79,31 @@ export default function MessageBubble({ message }: MessageBubbleProps) {
       })
     : message.content;
 
+  const handleCopy = useCallback(async () => {
+    try {
+      const textToCopy = processedContent || '';
+      await navigator.clipboard.writeText(textToCopy);
+      setCopyLabel('Copied!');
+      setTimeout(() => setCopyLabel('Copy'), 1500);
+    } catch (err) {
+      console.error('Failed to copy:', err);
+    }
+  }, [processedContent]);
+
   return (
     <div className={`message-bubble ${message.role}`}>
+      {message.role === 'assistant' && (
+        <button
+          className="copy-button"
+          onClick={handleCopy}
+          aria-label="Copy message"
+          title={copyLabel}
+        >
+          {copyLabel === 'Copy' ? (
+            <img src={copyIcon} alt="Copy" />
+          ) : '✓'}
+        </button>
+      )}
       {message.noContextWarning && (
         <div
           className="warning-bubble"
