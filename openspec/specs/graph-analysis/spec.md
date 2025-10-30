@@ -4,7 +4,7 @@
 TBD - created by archiving change add-logseq-ai-chat-mvp. Update Purpose after archive.
 ## Requirements
 ### Requirement: Logseq Graph Analysis and Indexing
-The system SHALL index pages, blocks, backlinks, forward links, tags, properties, namespaces, and journals to support search and traversal. The system MUST support querying specific pages or journal entries by name or date for direct retrieval when requested by the AI assistant. The system SHALL provide block-level relevance scoring and filtering capabilities to support intelligent context selection. The system SHALL index block IDs and support querying blocks by ID across the entire graph.
+The system SHALL index pages, blocks, backlinks, forward links, tags, properties, namespaces, and journals to support search and traversal. The system MUST support querying specific pages or journal entries by name or date for direct retrieval when requested by the AI assistant. The system SHALL provide block-level relevance scoring and filtering capabilities to support intelligent context selection. The system SHALL support temporal queries to retrieve multiple journals by date range, compare journal entries across dates, and detect recurring patterns in journals.
 
 #### Scenario: Query specific page by name
 - **WHEN** a user or AI requests a specific page by name
@@ -32,15 +32,22 @@ The system SHALL index pages, blocks, backlinks, forward links, tags, properties
 - **WHEN** a search result limit is configured
 - **THEN** the system returns at most that many results, sorted by score
 
-#### Scenario: Query block by ID
-- **WHEN** a user or AI queries a block by ID (e.g., "block-id-123")
-- **THEN** the system returns the block content, parent page name, and block context
+#### Scenario: Query journals by date range
+- **WHEN** a user or AI queries journals within a date range (e.g., "what did I write last week?")
+- **THEN** the system returns all journals within the specified date range
+- **AND** journals are returned with date metadata and content summaries
 
-#### Scenario: Block ID indexing during graph build
-- **WHEN** the graph index is built or rebuilt
-- **THEN** the system indexes all block IDs mapping them to their parent pages and positions
+#### Scenario: Compare journal entries
+- **WHEN** a user or AI requests to compare journals (e.g., "compare today's journal with last week")
+- **THEN** the system compares the journals by content similarity, tag overlap, and activity levels
+- **AND** returns comparison results with similarity scores
 
-#### Scenario: Block reference resolution
-- **WHEN** a block reference `((block-id))` is encountered
-- **THEN** the system can resolve the referenced block and provide its content and context
+#### Scenario: Detect recurring patterns in journals
+- **WHEN** a user or AI requests pattern detection (e.g., "what patterns do you see in my journals?")
+- **THEN** the system analyzes journals for recurring tags, topics, or content
+- **AND** returns patterns with frequency and examples
+
+#### Scenario: Parse natural language date queries
+- **WHEN** a user query contains natural language date references (e.g., "last week", "last month")
+- **THEN** the system parses the date range and queries journals accordingly
 

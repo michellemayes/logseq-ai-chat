@@ -31,6 +31,7 @@ export function setupIpcHandlers() {
   ipcMain.handle('set-settings', async (_event, updates: Partial<Settings>) => {
     setSettings(updates);
     const settings = getSettings();
+    console.log('[ipc/handlers] Settings saved, primaryColor:', settings.primaryColor);
     
     if (settings.logseqPath) {
       try {

@@ -46,6 +46,17 @@ export default function SettingsPanel({ settings, onChange, onSave }: SettingsPa
     return () => { mounted = false; };
   }, [settings.logseqPath]);
   
+  // Apply primary color immediately when settings change
+  useEffect(() => {
+    const root = document.documentElement;
+    const defaultColor = settings.theme === 'dark' ? '#8B6F8F' : '#6B4E71';
+    if (settings.primaryColor) {
+      root.style.setProperty('--accent', settings.primaryColor);
+    } else {
+      root.style.setProperty('--accent', defaultColor);
+    }
+  }, [settings.primaryColor, settings.theme]);
+  
   const handleChange = (key: keyof Settings, value: string | ContextSettings | undefined) => {
     if (value === undefined) {
       const updated = { ...settings };
@@ -206,19 +217,40 @@ export default function SettingsPanel({ settings, onChange, onSave }: SettingsPa
             type="color"
             className="settings-color-picker"
             value={settings.primaryColor || (settings.theme === 'dark' ? '#8B6F8F' : '#6B4E71')}
-            onChange={(e) => handleChange('primaryColor', e.target.value)}
+            onChange={(e) => {
+              handleChange('primaryColor', e.target.value);
+              // Apply immediately for preview
+              document.documentElement.style.setProperty('--accent', e.target.value);
+            }}
           />
           <input
             type="text"
             className="settings-input settings-color-input"
             value={settings.primaryColor || ''}
-            onChange={(e) => handleChange('primaryColor', e.target.value || undefined)}
+            onChange={(e) => {
+              const value = e.target.value || undefined;
+              handleChange('primaryColor', value);
+              // Apply immediately for preview
+              const root = document.documentElement;
+              const defaultColor = settings.theme === 'dark' ? '#8B6F8F' : '#6B4E71';
+              if (value) {
+                root.style.setProperty('--accent', value);
+              } else {
+                root.style.setProperty('--accent', defaultColor);
+              }
+            }}
             placeholder={settings.theme === 'dark' ? '#8B6F8F' : '#6B4E71'}
             pattern="^#[0-9A-Fa-f]{6}$"
           />
           <button
             className="settings-button settings-reset-color-button"
-            onClick={() => handleChange('primaryColor', undefined)}
+            onClick={() => {
+              handleChange('primaryColor', undefined);
+              // Reset immediately
+              const root = document.documentElement;
+              const defaultColor = settings.theme === 'dark' ? '#8B6F8F' : '#6B4E71';
+              root.style.setProperty('--accent', defaultColor);
+            }}
             title="Reset to default theme color"
           >
             Reset

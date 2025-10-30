@@ -46,6 +46,7 @@ function migrateSettings(settings: Partial<Settings>): Settings {
     providers: settings.providers || {},
     theme: settings.theme || 'system',
     ...(settings.contextSettings && { contextSettings: settings.contextSettings }),
+    ...(settings.primaryColor && { primaryColor: settings.primaryColor }),
   };
 
   // Migrate deprecated apiKey/model to providers.groq structure
@@ -104,6 +105,7 @@ export function setSettings(updates: Partial<Settings>): void {
   if (updates.provider !== undefined) updatedSettings.provider = updates.provider;
   if (updates.providers !== undefined) updatedSettings.providers = updates.providers;
   if (updates.theme !== undefined) updatedSettings.theme = updates.theme;
+  if (updates.primaryColor !== undefined) updatedSettings.primaryColor = updates.primaryColor;
   if (updates.contextSettings !== undefined) updatedSettings.contextSettings = updates.contextSettings;
   
   // Remove undefined contextSettings if it was explicitly set to undefined
@@ -111,6 +113,12 @@ export function setSettings(updates: Partial<Settings>): void {
     delete updatedSettings.contextSettings;
   }
   
+  // Remove undefined primaryColor if it was explicitly set to undefined
+  if ('primaryColor' in updates && updates.primaryColor === undefined) {
+    delete updatedSettings.primaryColor;
+  }
+  
+  console.log('[settings] Saving settings with primaryColor:', updatedSettings.primaryColor);
   store.set(updatedSettings);
 }
 

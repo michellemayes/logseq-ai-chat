@@ -28,6 +28,16 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       try {
         const loaded = await window.electronAPI.getSettings();
         setSettings(loaded);
+        console.log('[SettingsContext] Loaded settings, primaryColor:', loaded.primaryColor);
+        // Apply primary color immediately when settings are loaded
+        const root = document.documentElement;
+        const theme = loaded.theme === 'system' 
+          ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
+          : loaded.theme;
+        const defaultColor = theme === 'dark' ? '#8B6F8F' : '#6B4E71';
+        const accentColor = loaded.primaryColor || defaultColor;
+        root.style.setProperty('--accent', accentColor);
+        console.log('[SettingsContext] Applied accent color:', accentColor);
       } catch (error) {
         console.error('Failed to load settings:', error);
       } finally {
@@ -41,6 +51,17 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     try {
       const updated = await window.electronAPI.setSettings(updates);
       setSettings(updated);
+      // Apply primary color immediately when settings are updated
+      const root = document.documentElement;
+      const theme = updated.theme === 'system' 
+        ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
+        : updated.theme;
+      const defaultColor = theme === 'dark' ? '#8B6F8F' : '#6B4E71';
+      if (updated.primaryColor) {
+        root.style.setProperty('--accent', updated.primaryColor);
+      } else {
+        root.style.setProperty('--accent', defaultColor);
+      }
     } catch (error) {
       console.error('Failed to update settings:', error);
       throw error;

@@ -40,15 +40,15 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   }, [settings.theme]);
 
   useEffect(() => {
-    document.documentElement.setAttribute('data-theme', theme);
+    const root = document.documentElement;
+    root.setAttribute('data-theme', theme);
     
-    // Apply custom primary color if set
-    if (settings.primaryColor) {
-      document.documentElement.style.setProperty('--accent', settings.primaryColor);
-    } else {
-      // Reset to default theme color
-      document.documentElement.style.removeProperty('--accent');
-    }
+    // Apply custom primary color if set, otherwise use theme default
+    // Setting via inline style on documentElement will override CSS rules
+    const defaultColor = theme === 'dark' ? '#8B6F8F' : '#6B4E71';
+    const accentColor = settings.primaryColor || defaultColor;
+    root.style.setProperty('--accent', accentColor);
+    console.log('[ThemeContext] Applied accent color:', accentColor, 'theme:', theme, 'primaryColor:', settings.primaryColor);
   }, [theme, settings.primaryColor]);
 
   const toggleTheme = async () => {

@@ -19,6 +19,17 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
   const handleSave = async () => {
     try {
       await updateSettings(localSettings);
+      // Ensure color is applied after save
+      const root = document.documentElement;
+      const theme = localSettings.theme === 'system' 
+        ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
+        : localSettings.theme;
+      const defaultColor = theme === 'dark' ? '#8B6F8F' : '#6B4E71';
+      if (localSettings.primaryColor) {
+        root.style.setProperty('--accent', localSettings.primaryColor);
+      } else {
+        root.style.setProperty('--accent', defaultColor);
+      }
       onClose();
     } catch (error) {
       console.error('Failed to save settings:', error);
