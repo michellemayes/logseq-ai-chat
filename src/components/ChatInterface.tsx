@@ -925,7 +925,7 @@ export default function ChatInterface({ onOpenSidebar, onOpenConversations, conv
                         }
                         return [
                           ...prev,
-                          { role: 'assistant', content: warningText }
+                          { role: 'assistant', content: warningText, createdAt: Date.now() }
                         ];
                       });
                       continue;
@@ -980,6 +980,7 @@ export default function ChatInterface({ onOpenSidebar, onOpenConversations, conv
                       {
                         role: 'assistant',
                         content: `❌ Error: ${err instanceof Error ? err.message : 'Unknown error'}`,
+                        createdAt: Date.now(),
                       },
                     ]);
                   }

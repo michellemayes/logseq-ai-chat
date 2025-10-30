@@ -70,9 +70,6 @@
   - “Give me a 10-bullet summary of ‘Vibe Coding’ with code blocks and links.” (then test copying)
   - “Return a brief answer with no sources.” (verify collapsed sources + copy)
 
-- Primary color theming
-  - “Change the primary color to #5A67D8 (just acknowledging in UI).” (then manually verify accents update)
-
 - Backup files excluded
   - “Summarize anything in ‘bak’ directories.” (should respond that nothing is found)
 

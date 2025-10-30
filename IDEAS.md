@@ -36,7 +36,3 @@
 - Convert blocks to pages
 
 Custom rules for LLM
-
-show timestamps in chat
-
-accurate updated at time in conversation export 
