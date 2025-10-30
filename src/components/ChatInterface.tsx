@@ -305,6 +305,109 @@ export default function ChatInterface({ onOpenSidebar, onOpenConversations, conv
         }
       }
       
+      // Detect traversal-related queries and include traversal results
+      const connectedPagesPattern = /(?:show|list|find|get|what).*pages?\s+(?:connected|linked|related)\s+(?:to|with|from)\s+([A-Z][a-zA-Z\s]+?)(?:\s|$|\.|\?)/i;
+      const relatedPagesPattern = /(?:find|show|list|get).*related\s+pages?\s+(?:about|for|on)\s+([A-Z][a-zA-Z\s]+?)(?:\s|$|\.|\?)/i;
+      const orphanedPagesPattern = /(?:show|list|find|get).*orphaned\s+pages?/i;
+      const traversePattern = /(?:traverse|explore).*graph.*(?:from|starting|at)\s+([A-Z][a-zA-Z\s]+?)(?:\s|$|\.|\?)/i;
+      
+      const connectedMatch = content.match(connectedPagesPattern);
+      const relatedMatch = content.match(relatedPagesPattern);
+      const orphanedMatch = content.match(orphanedPagesPattern);
+      const traverseMatch = content.match(traversePattern);
+      
+      if (connectedMatch && connectedMatch[1]) {
+        const pageName = connectedMatch[1].trim();
+        console.log('[ChatInterface] Detected connected pages query for:', pageName);
+        try {
+          const connectedPages = await window.electronAPI.getConnectedPages(pageName);
+          console.log('[ChatInterface] Found', connectedPages.length, 'connected pages');
+          for (const connectedPage of connectedPages) {
+            if (context.length >= maxPages || totalBlocksCount >= maxTotalBlocks) break;
+            if (!context.find(c => c.pageName === connectedPage)) {
+              const page = await window.electronAPI.getPage(connectedPage);
+              if (page) {
+                addPageToContext(page);
+              }
+            }
+          }
+        } catch (error) {
+          console.error('[ChatInterface] Error getting connected pages:', error);
+        }
+      }
+      
+      if (relatedMatch && relatedMatch[1]) {
+        const pageName = relatedMatch[1].trim();
+        console.log('[ChatInterface] Detected related pages query for:', pageName);
+        try {
+          const relatedPages = await window.electronAPI.findRelatedPages(pageName, { maxHops: 2 });
+          console.log('[ChatInterface] Found', relatedPages.length, 'related pages');
+          // Limit to top 5 related pages
+          for (const relatedPage of relatedPages.slice(0, 5)) {
+            if (context.length >= maxPages || totalBlocksCount >= maxTotalBlocks) break;
+            if (!context.find(c => c.pageName === relatedPage.pageName)) {
+              const page = await window.electronAPI.getPage(relatedPage.pageName);
+              if (page) {
+                addPageToContext(page);
+              }
+            }
+          }
+        } catch (error) {
+          console.error('[ChatInterface] Error finding related pages:', error);
+        }
+      }
+      
+      if (orphanedMatch) {
+        console.log('[ChatInterface] Detected orphaned pages query');
+        try {
+          const orphanedPages = await window.electronAPI.findOrphanedPages({ includeTagged: false });
+          console.log('[ChatInterface] Found', orphanedPages.length, 'orphaned pages');
+          // Limit to top 10 orphaned pages
+          for (const orphanedPage of orphanedPages.slice(0, 10)) {
+            if (context.length >= maxPages || totalBlocksCount >= maxTotalBlocks) break;
+            if (!context.find(c => c.pageName === orphanedPage.pageName)) {
+              const page = await window.electronAPI.getPage(orphanedPage.pageName);
+              if (page) {
+                addPageToContext(page);
+              }
+            }
+          }
+        } catch (error) {
+          console.error('[ChatInterface] Error finding orphaned pages:', error);
+        }
+      }
+      
+      if (traverseMatch && traverseMatch[1]) {
+        const pageName = traverseMatch[1].trim();
+        console.log('[ChatInterface] Detected graph traversal query for:', pageName);
+        try {
+          const traversalResults = await window.electronAPI.traverseGraph(pageName, 3);
+          console.log('[ChatInterface] Found', traversalResults.length, 'pages in traversal');
+          // Group by hop level and limit to top results per level
+          const byHopLevel = new Map<number, string[]>();
+          for (const result of traversalResults) {
+            if (!byHopLevel.has(result.hopLevel)) {
+              byHopLevel.set(result.hopLevel, []);
+            }
+            byHopLevel.get(result.hopLevel)!.push(result.pageName);
+          }
+          // Add pages from each hop level, limiting to 5 per level
+          for (const [, pages] of byHopLevel.entries()) {
+            for (const pageName of pages.slice(0, 5)) {
+              if (context.length >= maxPages || totalBlocksCount >= maxTotalBlocks) break;
+              if (!context.find(c => c.pageName === pageName)) {
+                const page = await window.electronAPI.getPage(pageName);
+                if (page) {
+                  addPageToContext(page);
+                }
+              }
+            }
+          }
+        } catch (error) {
+          console.error('[ChatInterface] Error traversing graph:', error);
+        }
+      }
+      
       // Also perform search for general context
       const searchResults = await window.electronAPI.search(content);
       // For search results, we need to get the actual page to get the file path

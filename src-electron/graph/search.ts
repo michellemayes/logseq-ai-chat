@@ -107,6 +107,195 @@ export interface PageContent {
   allProperties: Record<string, string>;
 }
 
+export interface TraversalResult {
+  pageName: string;
+  hopLevel: number;
+}
+
+export interface RelatedPageResult {
+  pageName: string;
+  connectionStrength: number;
+  connectionTypes: string[];
+}
+
+export interface OrphanedPage {
+  pageName: string;
+  path: string;
+  hasTags: boolean;
+}
+
+/**
+ * Get all pages connected to a given page (combines backlinks and forward links)
+ */
+export function getConnectedPages(pageName: string): string[] {
+  const backlinks = getBacklinks(pageName);
+  const forwardLinks = getForwardLinks(pageName);
+  const connected = new Set<string>();
+  
+  backlinks.forEach(link => connected.add(link));
+  forwardLinks.forEach(link => connected.add(link));
+  
+  return Array.from(connected);
+}
+
+/**
+ * Traverse the graph starting from a page, returning pages at each hop level
+ */
+export function traverseGraph(pageName: string, maxHops: number = 3): TraversalResult[] {
+  const index = getIndex();
+  const visited = new Set<string>();
+  const results: TraversalResult[] = [];
+  const queue: Array<{ pageName: string; hopLevel: number }> = [];
+  
+  // Start with the initial page
+  if (index.pages.has(pageName)) {
+    visited.add(pageName);
+    queue.push({ pageName, hopLevel: 0 });
+  }
+  
+  // Breadth-first search
+  while (queue.length > 0) {
+    const current = queue.shift()!;
+    
+    if (current.hopLevel > 0) {
+      results.push({
+        pageName: current.pageName,
+        hopLevel: current.hopLevel,
+      });
+    }
+    
+    if (current.hopLevel >= maxHops) {
+      continue;
+    }
+    
+    // Get connected pages (backlinks and forward links)
+    const connected = getConnectedPages(current.pageName);
+    
+    for (const connectedPage of connected) {
+      if (!visited.has(connectedPage)) {
+        visited.add(connectedPage);
+        queue.push({ pageName: connectedPage, hopLevel: current.hopLevel + 1 });
+      }
+    }
+  }
+  
+  return results;
+}
+
+/**
+ * Find pages related to a given page through shared connections, tags, or properties
+ */
+export function findRelatedPages(
+  pageName: string,
+  options?: { maxHops?: number; minConnections?: number }
+): RelatedPageResult[] {
+  const index = getIndex();
+  const maxHops = options?.maxHops ?? 2;
+  const minConnections = options?.minConnections ?? 1;
+  
+  const page = index.pages.get(pageName);
+  if (!page) {
+    return [];
+  }
+  
+  // Get pages connected through traversal
+  const traversalResults = traverseGraph(pageName, maxHops);
+  const candidatePages = new Set<string>();
+  
+  traversalResults.forEach(result => {
+    if (result.hopLevel > 0) {
+      candidatePages.add(result.pageName);
+    }
+  });
+  
+  // Score pages by connection strength
+  const relatedPages = new Map<string, { strength: number; types: Set<string> }>();
+  
+  for (const candidatePage of candidatePages) {
+    const candidate = index.pages.get(candidatePage);
+    if (!candidate) continue;
+    
+    let strength = 0;
+    const types = new Set<string>();
+    
+    // Shared connections (pages that link to/from the same pages)
+    const pageConnections = getConnectedPages(pageName);
+    const candidateConnections = getConnectedPages(candidatePage);
+    const sharedConnections = pageConnections.filter(c => candidateConnections.includes(c));
+    
+    if (sharedConnections.length > 0) {
+      strength += sharedConnections.length;
+      types.add('shared-connections');
+    }
+    
+    // Shared tags
+    const sharedTags = page.allTags.filter(tag => candidate.allTags.includes(tag));
+    if (sharedTags.length > 0) {
+      strength += sharedTags.length * 2; // Tags are weighted higher
+      types.add('shared-tags');
+    }
+    
+    // Shared properties
+    const sharedProperties = Object.keys(page.allProperties).filter(
+      prop => candidate.allProperties[prop] && 
+      page.allProperties[prop] === candidate.allProperties[prop]
+    );
+    if (sharedProperties.length > 0) {
+      strength += sharedProperties.length;
+      types.add('shared-properties');
+    }
+    
+    if (strength >= minConnections) {
+      relatedPages.set(candidatePage, {
+        strength,
+        types,
+      });
+    }
+  }
+  
+  // Convert to array and sort by strength
+  return Array.from(relatedPages.entries())
+    .map(([pageName, data]) => ({
+      pageName,
+      connectionStrength: data.strength,
+      connectionTypes: Array.from(data.types),
+    }))
+    .sort((a, b) => b.connectionStrength - a.connectionStrength);
+}
+
+/**
+ * Find pages with no backlinks and no forward links (orphaned pages)
+ */
+export function findOrphanedPages(options?: { includeTagged?: boolean }): OrphanedPage[] {
+  const index = getIndex();
+  const includeTagged = options?.includeTagged ?? false;
+  const orphaned: OrphanedPage[] = [];
+  
+  for (const [pageName, page] of index.pages.entries()) {
+    // Skip journals
+    if (pageName.startsWith('journals/')) {
+      continue;
+    }
+    
+    const backlinks = getBacklinks(pageName);
+    const forwardLinks = getForwardLinks(pageName);
+    
+    // Check if page is orphaned (no connections)
+    if (backlinks.length === 0 && forwardLinks.length === 0) {
+      // If includeTagged is false, exclude pages with tags (considered "connected" via tags)
+      if (includeTagged || page.allTags.length === 0) {
+        orphaned.push({
+          pageName,
+          path: page.path,
+          hasTags: page.allTags.length > 0,
+        });
+      }
+    }
+  }
+  
+  return orphaned;
+}
+
 export function getPage(pageName: string): PageContent | null {
   const index = getIndex();
   

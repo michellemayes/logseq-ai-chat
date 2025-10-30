@@ -4,36 +4,34 @@
 TBD - created by archiving change add-logseq-ai-chat-mvp. Update Purpose after archive.
 ## Requirements
 ### Requirement: LLM Provider Integration (Groq)
-The system SHALL support multiple LLM providers (Groq, OpenAI, Anthropic, Ollama) for LLM responses. Each provider MUST support both streaming and non-streaming modes, with streaming as the preferred method. Providers SHALL use their respective API formats (Server-Sent Events for Groq/OpenAI, streaming for Anthropic/Ollama) and parse tokens from their respective streams. The system SHALL allow users to select their preferred provider in settings.
+The system SHALL integrate with Groq API for LLM responses. The Groq provider MUST support both streaming and non-streaming modes, with streaming as the preferred method. The provider SHALL use Server-Sent Events (SSE) format for streaming responses and parse tokens from the SSE stream. The system prompt SHALL inform the AI about graph traversal capabilities and enable it to use traversal queries for discovery and exploration.
 
-#### Scenario: AI reads journal entry with Groq provider
-- **WHEN** user asks about a journal entry and Groq is selected as provider
+#### Scenario: AI reads journal entry
+- **WHEN** user asks about a journal entry
 - **THEN** the system queries the graph for that journal
 - **AND** includes the journal content in context
-- **AND** the Groq provider streams the LLM response as tokens arrive
+- **AND** the LLM response is streamed as tokens arrive
 
-#### Scenario: AI reads specific page with OpenAI provider
-- **WHEN** user asks about a specific page and OpenAI is selected as provider
+#### Scenario: AI reads specific page
+- **WHEN** user asks about a specific page
 - **THEN** the system queries the graph for that page
 - **AND** includes the page content in context
-- **AND** the OpenAI provider streams the LLM response as tokens arrive
-
-#### Scenario: AI reads page with Anthropic provider
-- **WHEN** user asks about a page and Anthropic is selected as provider
-- **THEN** the system queries the graph for that page
-- **AND** includes the page content in context
-- **AND** the Anthropic provider streams the LLM response as tokens arrive
-
-#### Scenario: AI reads page with Ollama provider
-- **WHEN** user asks about a page and Ollama is selected as provider
-- **THEN** the system queries the graph for that page
-- **AND** includes the page content in context
-- **AND** the Ollama provider streams the LLM response as tokens arrive
+- **AND** the LLM response is streamed as tokens arrive
 
 #### Scenario: AI informed of graph access
-- **WHEN** context is provided to the LLM regardless of provider
+- **WHEN** context is provided to the LLM
 - **THEN** the system prompt informs the AI of direct graph access
 - **AND** citations are included in the streamed response
+
+#### Scenario: AI uses graph traversal for discovery
+- **WHEN** a user asks about connected or related pages (e.g., "show pages connected to X")
+- **THEN** the AI recognizes the query type and uses graph traversal functions
+- **AND** traversal results are included in the response with citations
+
+#### Scenario: Graph traversal capabilities in system prompt
+- **WHEN** the system prompt is constructed
+- **THEN** it includes information about graph traversal capabilities
+- **AND** provides examples of traversal queries and when to use them
 
 ### Requirement: LLM Response Streaming
 The system SHALL stream LLM response tokens as they arrive from the API, displaying them immediately in the chat interface. Streaming MUST maintain all existing functionality including action parsing and citation extraction.

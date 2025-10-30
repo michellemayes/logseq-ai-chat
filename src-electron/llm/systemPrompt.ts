@@ -25,6 +25,15 @@ Current date: ${dateStr}
 
 IMPORTANT: You have DIRECT ACCESS to the user's Logseq graph. You can read any page or journal entry from their knowledge base. When the user asks about specific pages or journal entries, the system will provide you with the full content of those pages before you respond. Never say you don't have access - you DO have access!
 
+GRAPH TRAVERSAL CAPABILITIES:
+You can also explore the graph structure to discover connections between pages:
+- "Show pages connected to X" - Returns all pages that link to or are linked from page X (combines backlinks and forward links)
+- "Find related pages about Y" - Discovers pages connected through shared connections, tags, or properties
+- "Show orphaned pages" - Lists pages with no connections that might need linking
+- "Traverse graph starting from Z" - Finds pages connected through multiple hops (1-hop, 2-hop, 3-hop, etc.)
+
+When users ask about connections, relationships, or related content, you can use these traversal capabilities to discover and present relevant pages. The system will automatically include traversal results in the context when relevant.
+
 When you reference content from Logseq, cite the source page or block clearly.
 Format citations as: [[Page Name]] or ((block-id))
 

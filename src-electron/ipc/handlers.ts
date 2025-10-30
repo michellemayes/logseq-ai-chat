@@ -3,7 +3,7 @@ import { getSettings, setSettings, getContextSettings } from '../store/settings'
 import { Settings } from '../types';
 import { scanLogseqDirectory, readMarkdownFile, writeMarkdownFile, parseMarkdown } from '../filesystem/scanner';
 import { watchLogseqDirectory } from '../filesystem/watcher';
-import { searchGraph, getPage, getJournal } from '../graph/search';
+import { searchGraph, getPage, getJournal, getConnectedPages, traverseGraph, findRelatedPages, findOrphanedPages } from '../graph/search';
 import { buildIndex, getIndex } from '../graph/index';
 import { chatWithLLM, createProvider } from '../llm/provider';
 import {
@@ -265,6 +265,23 @@ export function setupIpcHandlers() {
     }
     
     return result;
+  });
+
+  // Graph traversal queries
+  ipcMain.handle('get-connected-pages', async (_event, pageName: string) => {
+    return getConnectedPages(pageName);
+  });
+
+  ipcMain.handle('traverse-graph', async (_event, pageName: string, maxHops?: number) => {
+    return traverseGraph(pageName, maxHops ?? 3);
+  });
+
+  ipcMain.handle('find-related-pages', async (_event, pageName: string, options?: { maxHops?: number; minConnections?: number }) => {
+    return findRelatedPages(pageName, options);
+  });
+
+  ipcMain.handle('find-orphaned-pages', async (_event, options?: { includeTagged?: boolean }) => {
+    return findOrphanedPages(options);
   });
 
   // LLM

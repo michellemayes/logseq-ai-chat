@@ -71,6 +71,23 @@ export interface PageContent {
   allProperties: Record<string, string>;
 }
 
+export interface TraversalResult {
+  pageName: string;
+  hopLevel: number;
+}
+
+export interface RelatedPageResult {
+  pageName: string;
+  connectionStrength: number;
+  connectionTypes: string[];
+}
+
+export interface OrphanedPage {
+  pageName: string;
+  path: string;
+  hasTags: boolean;
+}
+
 export interface ElectronAPI {
   getSettings: () => Promise<Settings>;
   setSettings: (settings: Partial<Settings>) => Promise<Settings>;
@@ -95,6 +112,11 @@ export interface ElectronAPI {
   getJournal: (dateStr: string) => Promise<PageContent | null>;
   rebuildIndex: () => Promise<{ files: number; journalFiles: number }>;
   getIndexStats: () => Promise<{ pages: number; journals: number }>;
+  // Graph traversal
+  getConnectedPages: (pageName: string) => Promise<string[]>;
+  traverseGraph: (pageName: string, maxHops?: number) => Promise<TraversalResult[]>;
+  findRelatedPages: (pageName: string, options?: { maxHops?: number; minConnections?: number }) => Promise<RelatedPageResult[]>;
+  findOrphanedPages: (options?: { includeTagged?: boolean }) => Promise<OrphanedPage[]>;
   openFile: (filePath: string) => Promise<void>;
   createJournalEntry: (date: string, content: string) => Promise<string>;
   createPage: (pageName: string, content: string) => Promise<string>;

@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron';
-import { Settings, PageContent, Conversation, ConversationMetadata } from './types';
+import { Settings, PageContent, Conversation, ConversationMetadata, TraversalResult, RelatedPageResult, OrphanedPage } from './types';
 
 interface ElectronAPI {
   getSettings: () => Promise<Settings>;
@@ -25,6 +25,11 @@ interface ElectronAPI {
   getJournal: (dateStr: string) => Promise<PageContent | null>;
   rebuildIndex: () => Promise<{ files: number; journalFiles: number }>;
   getIndexStats: () => Promise<{ pages: number; journals: number }>;
+  // Graph traversal
+  getConnectedPages: (pageName: string) => Promise<string[]>;
+  traverseGraph: (pageName: string, maxHops?: number) => Promise<TraversalResult[]>;
+  findRelatedPages: (pageName: string, options?: { maxHops?: number; minConnections?: number }) => Promise<RelatedPageResult[]>;
+  findOrphanedPages: (options?: { includeTagged?: boolean }) => Promise<OrphanedPage[]>;
   openFile: (filePath: string) => Promise<void>;
   createJournalEntry: (date: string, content: string) => Promise<string>;
   createPage: (pageName: string, content: string) => Promise<string>;
@@ -116,6 +121,12 @@ const electronAPI: ElectronAPI = {
   // Graph queries
   getPage: (pageName: string) => ipcRenderer.invoke('get-page', pageName) as Promise<PageContent | null>,
   getJournal: (dateStr: string) => ipcRenderer.invoke('get-journal', dateStr) as Promise<PageContent | null>,
+  
+  // Graph traversal
+  getConnectedPages: (pageName: string) => ipcRenderer.invoke('get-connected-pages', pageName) as Promise<string[]>,
+  traverseGraph: (pageName: string, maxHops?: number) => ipcRenderer.invoke('traverse-graph', pageName, maxHops) as Promise<TraversalResult[]>,
+  findRelatedPages: (pageName: string, options?: { maxHops?: number; minConnections?: number }) => ipcRenderer.invoke('find-related-pages', pageName, options) as Promise<RelatedPageResult[]>,
+  findOrphanedPages: (options?: { includeTagged?: boolean }) => ipcRenderer.invoke('find-orphaned-pages', options) as Promise<OrphanedPage[]>,
   
   // File operations
   openFile: (filePath: string) => ipcRenderer.invoke('open-file', filePath),
