@@ -874,3 +874,218 @@ export function getBlockById(blockId: string): BlockWithPage | null {
   };
 }
 
+// ========== Task Query Functions ==========
+
+export interface TaskBlock {
+  id?: string;
+  content: string;
+  level: number;
+  properties: Record<string, string>;
+  tags: string[];
+  references: string[];
+  blockRefs: string[];
+  taskStatus: 'TODO' | 'DOING' | 'DONE' | 'LATER' | 'NOW' | 'WAITING' | 'CANCELED';
+  pageName: string;
+}
+
+export interface TaskQueryOptions {
+  pageName?: string;
+  dateRange?: { start: Date; end: Date };
+}
+
+export function queryTasksByStatus(
+  status: 'TODO' | 'DOING' | 'DONE' | 'LATER' | 'NOW' | 'WAITING' | 'CANCELED',
+  options?: TaskQueryOptions
+): TaskBlock[] {
+  const index = getIndex();
+  const tasks: TaskBlock[] = [];
+  const pageNames = options?.pageName 
+    ? new Set([options.pageName])
+    : index.tasks.get(status) || new Set();
+
+  for (const pageName of pageNames) {
+    const page = index.pages.get(pageName);
+    if (!page) continue;
+
+    // Filter by date range if specified
+    if (options?.dateRange) {
+      const isJournal = pageName.startsWith('journals/');
+      if (isJournal) {
+        const dateStr = pageName.replace('journals/', '').replace(/_/g, '-');
+        const journalDate = new Date(dateStr);
+        if (journalDate < options.dateRange.start || journalDate > options.dateRange.end) {
+          continue;
+        }
+      }
+    }
+
+    for (const block of page.blocks) {
+      if (block.taskStatus === status) {
+        tasks.push({
+          id: block.id,
+          content: block.content,
+          level: block.level,
+          properties: block.properties,
+          tags: block.tags,
+          references: block.references,
+          blockRefs: block.blockRefs,
+          taskStatus: block.taskStatus,
+          pageName,
+        });
+      }
+    }
+  }
+
+  return tasks;
+}
+
+export function queryTasksByPage(pageName: string): TaskBlock[] {
+  const index = getIndex();
+  const page = index.pages.get(pageName);
+  if (!page) return [];
+
+  const tasks: TaskBlock[] = [];
+  for (const block of page.blocks) {
+    if (block.taskStatus) {
+      tasks.push({
+        id: block.id,
+        content: block.content,
+        level: block.level,
+        properties: block.properties,
+        tags: block.tags,
+        references: block.references,
+        blockRefs: block.blockRefs,
+        taskStatus: block.taskStatus,
+        pageName,
+      });
+    }
+  }
+
+  return tasks;
+}
+
+export function queryTasksByDateRange(start: Date, end: Date): TaskBlock[] {
+  const index = getIndex();
+  const tasks: TaskBlock[] = [];
+
+  for (const [pageName, page] of index.pages.entries()) {
+    if (!pageName.startsWith('journals/')) continue;
+
+    const dateStr = pageName.replace('journals/', '').replace(/_/g, '-');
+    const journalDate = new Date(dateStr);
+    if (journalDate < start || journalDate > end) continue;
+
+    for (const block of page.blocks) {
+      if (block.taskStatus) {
+        tasks.push({
+          id: block.id,
+          content: block.content,
+          level: block.level,
+          properties: block.properties,
+          tags: block.tags,
+          references: block.references,
+          blockRefs: block.blockRefs,
+          taskStatus: block.taskStatus,
+          pageName,
+        });
+      }
+    }
+  }
+
+  return tasks;
+}
+
+export function queryTasksDueThisWeek(): TaskBlock[] {
+  const today = new Date();
+  const startOfWeek = new Date(today);
+  startOfWeek.setDate(today.getDate() - today.getDay()); // Sunday
+  startOfWeek.setHours(0, 0, 0, 0);
+  const endOfWeek = new Date(startOfWeek);
+  endOfWeek.setDate(startOfWeek.getDate() + 7);
+  endOfWeek.setHours(23, 59, 59, 999);
+
+  return queryTasksDueBetween(startOfWeek, endOfWeek);
+}
+
+export function queryTasksDueBetween(start: Date, end: Date): TaskBlock[] {
+  const index = getIndex();
+  const tasks: TaskBlock[] = [];
+
+  for (const [pageName, page] of index.pages.entries()) {
+    for (const block of page.blocks) {
+      if (!block.taskStatus) continue;
+
+      // Check scheduled/deadline properties
+      const scheduled = block.properties.scheduled || block.properties.deadline;
+      if (scheduled) {
+        try {
+          const taskDate = new Date(scheduled);
+          if (taskDate >= start && taskDate <= end) {
+            tasks.push({
+              id: block.id,
+              content: block.content,
+              level: block.level,
+              properties: block.properties,
+              tags: block.tags,
+              references: block.references,
+              blockRefs: block.blockRefs,
+              taskStatus: block.taskStatus,
+              pageName,
+            });
+          }
+        } catch {
+          // Invalid date format, skip
+        }
+      }
+    }
+  }
+
+  return tasks;
+}
+
+export interface TaskSummary {
+  date: string;
+  totalTasks: number;
+  byStatus: {
+    TODO: number;
+    DOING: number;
+    DONE: number;
+    LATER: number;
+    NOW: number;
+    WAITING: number;
+    CANCELED: number;
+  };
+  tasks: TaskBlock[];
+}
+
+export function getTaskSummary(journalDate: Date): TaskSummary | null {
+  const dateStr = journalDate.toISOString().split('T')[0].replace(/-/g, '_');
+  const journalPageName = `journals/${dateStr}`;
+  const tasks = queryTasksByPage(journalPageName);
+
+  if (tasks.length === 0) {
+    return null;
+  }
+
+  const byStatus = {
+    TODO: 0,
+    DOING: 0,
+    DONE: 0,
+    LATER: 0,
+    NOW: 0,
+    WAITING: 0,
+    CANCELED: 0,
+  };
+
+  for (const task of tasks) {
+    byStatus[task.taskStatus]++;
+  }
+
+  return {
+    date: dateStr,
+    totalTasks: tasks.length,
+    byStatus,
+    tasks,
+  };
+}
+

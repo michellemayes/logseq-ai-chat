@@ -13,10 +13,20 @@ export interface IndexedPage {
     tags: string[];
     references: string[];
     blockRefs: string[];
+    taskStatus?: 'TODO' | 'DOING' | 'DONE' | 'LATER' | 'NOW' | 'WAITING' | 'CANCELED';
   }>;
   allTags: string[];
   allProperties: Record<string, string>;
   modificationDate: Date;
+  taskCounts?: {
+    TODO: number;
+    DOING: number;
+    DONE: number;
+    LATER: number;
+    NOW: number;
+    WAITING: number;
+    CANCELED: number;
+  };
 }
 
 export interface GraphIndex {
@@ -26,6 +36,7 @@ export interface GraphIndex {
   properties: Map<string, Set<string>>;
   searchIndex: Map<string, string[]>;
   blockIds: Map<string, { pageName: string; blockIndex: number }>;
+  tasks: Map<'TODO' | 'DOING' | 'DONE' | 'LATER' | 'NOW' | 'WAITING' | 'CANCELED', Set<string>>;
 }
 
 let graphIndex: GraphIndex = {
@@ -35,6 +46,7 @@ let graphIndex: GraphIndex = {
   properties: new Map(),
   searchIndex: new Map(),
   blockIds: new Map(),
+  tasks: new Map(),
 };
 
 export async function buildIndex(filePaths: string[], rootPath: string): Promise<void> {
@@ -44,6 +56,7 @@ export async function buildIndex(filePaths: string[], rootPath: string): Promise
   const properties = new Map<string, Set<string>>();
   const searchIndex = new Map<string, string[]>();
   const blockIds = new Map<string, { pageName: string; blockIndex: number }>();
+  const tasks = new Map<'TODO' | 'DOING' | 'DONE' | 'LATER' | 'NOW' | 'WAITING' | 'CANCELED', Set<string>>();
 
   for (const filePath of filePaths) {
     try {
@@ -55,6 +68,15 @@ export async function buildIndex(filePaths: string[], rootPath: string): Promise
       const pageName = getPageName(filePath, rootPath);
       const allTags = new Set<string>();
       const allProperties: Record<string, string> = {};
+      const taskCounts = {
+        TODO: 0,
+        DOING: 0,
+        DONE: 0,
+        LATER: 0,
+        NOW: 0,
+        WAITING: 0,
+        CANCELED: 0,
+      };
 
       for (let blockIndex = 0; blockIndex < allBlocks.length; blockIndex++) {
         const block = allBlocks[blockIndex];
@@ -66,6 +88,15 @@ export async function buildIndex(filePaths: string[], rootPath: string): Promise
           } else {
             blockIds.set(block.id, { pageName, blockIndex });
           }
+        }
+        
+        // Index task status
+        if (block.taskStatus) {
+          if (!tasks.has(block.taskStatus)) {
+            tasks.set(block.taskStatus, new Set());
+          }
+          tasks.get(block.taskStatus)!.add(pageName);
+          taskCounts[block.taskStatus]++;
         }
         
         block.tags.forEach((tag) => allTags.add(tag));
@@ -110,10 +141,12 @@ export async function buildIndex(filePaths: string[], rootPath: string): Promise
           tags: b.tags,
           references: b.references,
           blockRefs: b.blockRefs,
+          taskStatus: b.taskStatus,
         })),
         allTags: Array.from(allTags),
         allProperties,
         modificationDate: stats.mtime,
+        taskCounts,
       });
     } catch (error) {
       console.error(`Error indexing ${filePath}:`, error);
@@ -127,10 +160,12 @@ export async function buildIndex(filePaths: string[], rootPath: string): Promise
     properties,
     searchIndex,
     blockIds,
+    tasks,
   };
   
   const journalPages = Array.from(pages.keys()).filter(k => k.startsWith('journals/'));
-  console.log('[graph/index] Index complete:', pages.size, 'pages,', journalPages.length, 'journals,', blockIds.size, 'block IDs');
+  const totalTasks = Array.from(tasks.values()).reduce((sum, set) => sum + set.size, 0);
+  console.log('[graph/index] Index complete:', pages.size, 'pages,', journalPages.length, 'journals,', blockIds.size, 'block IDs,', totalTasks, 'tasks');
 }
 
 function getPageName(filePath: string, rootPath: string): string {

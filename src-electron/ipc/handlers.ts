@@ -1,9 +1,9 @@
 import { ipcMain, dialog, shell } from 'electron';
 import { getSettings, setSettings, getContextSettings } from '../store/settings';
 import { Settings } from '../types';
-import { scanLogseqDirectory, readMarkdownFile, writeMarkdownFile, parseMarkdown } from '../filesystem/scanner';
+import { scanLogseqDirectory, readMarkdownFile, writeMarkdownFile, parseMarkdown, updateTaskStatus } from '../filesystem/scanner';
 import { watchLogseqDirectory } from '../filesystem/watcher';
-import { searchGraph, getPage, getJournal, getConnectedPages, traverseGraph, findRelatedPages, findOrphanedPages, getBlockById, parseDateRange, queryJournalsByDateRange, queryJournalsLastWeek, queryJournalsLastMonth, queryJournalsLastNDays, compareJournals, detectJournalPatterns } from '../graph/search';
+import { searchGraph, getPage, getJournal, getConnectedPages, traverseGraph, findRelatedPages, findOrphanedPages, getBlockById, parseDateRange, queryJournalsByDateRange, queryJournalsLastWeek, queryJournalsLastMonth, queryJournalsLastNDays, compareJournals, detectJournalPatterns, queryTasksByStatus, queryTasksByPage, queryTasksByDateRange, queryTasksDueThisWeek, queryTasksDueBetween, getTaskSummary } from '../graph/search';
 import { buildIndex, getIndex } from '../graph/index';
 import { chatWithLLM, createProvider } from '../llm/provider';
 import {
@@ -318,6 +318,83 @@ export function setupIpcHandlers() {
     console.log('[ipc/handlers] detect-journal-patterns called for', dateStrings.length, 'dates');
     const dates = dateStrings.map(d => new Date(d)).filter(d => !isNaN(d.getTime()));
     return detectJournalPatterns(dates);
+  });
+
+  // Task query handlers
+  ipcMain.handle('query-tasks-by-status', async (_event, status: string, options?: { pageName?: string; dateRange?: { start: string; end: string } }) => {
+    console.log('[ipc/handlers] query-tasks-by-status called:', status, options);
+    const taskOptions: { pageName?: string; dateRange?: { start: Date; end: Date } } | undefined = options 
+      ? (options.dateRange 
+          ? { pageName: options.pageName, dateRange: { start: new Date(options.dateRange.start), end: new Date(options.dateRange.end) } }
+          : { pageName: options.pageName })
+      : undefined;
+    return queryTasksByStatus(status as any, taskOptions);
+  });
+
+  ipcMain.handle('query-tasks-by-page', async (_event, pageName: string) => {
+    console.log('[ipc/handlers] query-tasks-by-page called:', pageName);
+    return queryTasksByPage(pageName);
+  });
+
+  ipcMain.handle('query-tasks-by-date-range', async (_event, startDateStr: string, endDateStr: string) => {
+    console.log('[ipc/handlers] query-tasks-by-date-range called:', startDateStr, 'to', endDateStr);
+    const startDate = new Date(startDateStr);
+    const endDate = new Date(endDateStr);
+    if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+      throw new Error('Invalid date format');
+    }
+    return queryTasksByDateRange(startDate, endDate);
+  });
+
+  ipcMain.handle('query-tasks-due-this-week', async () => {
+    console.log('[ipc/handlers] query-tasks-due-this-week called');
+    return queryTasksDueThisWeek();
+  });
+
+  ipcMain.handle('query-tasks-due-between', async (_event, startDateStr: string, endDateStr: string) => {
+    console.log('[ipc/handlers] query-tasks-due-between called:', startDateStr, 'to', endDateStr);
+    const startDate = new Date(startDateStr);
+    const endDate = new Date(endDateStr);
+    if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+      throw new Error('Invalid date format');
+    }
+    return queryTasksDueBetween(startDate, endDate);
+  });
+
+  ipcMain.handle('get-task-summary', async (_event, dateStr: string) => {
+    console.log('[ipc/handlers] get-task-summary called for:', dateStr);
+    const date = new Date(dateStr);
+    if (isNaN(date.getTime())) {
+      throw new Error('Invalid date format');
+    }
+    return getTaskSummary(date);
+  });
+
+  ipcMain.handle('update-task-status', async (_event, pageName: string, blockId: string, newStatus: string) => {
+    console.log('[ipc/handlers] update-task-status called:', pageName, blockId, newStatus);
+    const settings = getSettings();
+    if (!settings.logseqPath) {
+      throw new Error('Logseq path not configured');
+    }
+
+    // Get file path from page name
+    let filePath: string;
+    if (pageName.startsWith('journals/')) {
+      const dateStr = pageName.replace('journals/', '');
+      filePath = `${settings.logseqPath}/journals/${dateStr}.md`;
+    } else {
+      const cleanPageName = pageName.startsWith('pages/') ? pageName.replace('pages/', '') : pageName;
+      const sanitized = cleanPageName.replace(/[^a-zA-Z0-9_\- ]/g, '_');
+      filePath = `${settings.logseqPath}/pages/${sanitized}.md`;
+    }
+
+    await updateTaskStatus(filePath, blockId, newStatus as any);
+
+    // Re-index the page
+    const files = await scanLogseqDirectory(settings.logseqPath);
+    await buildIndex(files, settings.logseqPath);
+
+    return { success: true };
   });
 
   // Graph traversal queries

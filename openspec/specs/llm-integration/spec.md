@@ -4,7 +4,7 @@
 TBD - created by archiving change add-logseq-ai-chat-mvp. Update Purpose after archive.
 ## Requirements
 ### Requirement: LLM Provider Integration (Groq)
-The system SHALL integrate with Groq API for LLM responses. The Groq provider MUST support both streaming and non-streaming modes, with streaming as the preferred method. The provider SHALL use Server-Sent Events (SSE) format for streaming responses and parse tokens from the SSE stream. The system prompt SHALL inform the AI about temporal intelligence capabilities and enable it to answer queries about journal content over time periods.
+The system SHALL integrate with Groq API for LLM responses. The Groq provider MUST support both streaming and non-streaming modes, with streaming as the preferred method. The provider SHALL use Server-Sent Events (SSE) format for streaming responses and parse tokens from the SSE stream. The system prompt SHALL inform the AI about task management capabilities, including querying tasks by status, updating task status, and generating task summaries.
 
 #### Scenario: AI reads journal entry
 - **WHEN** user asks about a journal entry
@@ -23,25 +23,17 @@ The system SHALL integrate with Groq API for LLM responses. The Groq provider MU
 - **THEN** the system prompt informs the AI of direct graph access
 - **AND** citations are included in the streamed response
 
-#### Scenario: AI answers temporal queries
-- **WHEN** a user asks about journal content over time (e.g., "what did I write last week?")
-- **THEN** the AI recognizes the temporal query and uses date range queries
-- **AND** summarizes journal content from the specified time period
+#### Scenario: AI understands task queries
+- **WHEN** a user asks about tasks (e.g., "what tasks are due this week?")
+- **THEN** the AI recognizes the query type and uses task query functions to retrieve relevant tasks
 
-#### Scenario: AI compares journals
-- **WHEN** a user asks to compare journals (e.g., "compare today with last week")
-- **THEN** the AI uses journal comparison functions
-- **AND** provides insights about differences and similarities
+#### Scenario: AI can update task status
+- **WHEN** a user requests to update a task status (e.g., "mark X as done")
+- **THEN** the AI recognizes the request and uses task update functions to modify the task marker
 
-#### Scenario: AI detects patterns
-- **WHEN** a user asks about patterns in journals (e.g., "what patterns do you see?")
-- **THEN** the AI uses pattern detection functions
-- **AND** highlights recurring content, tags, or topics
-
-#### Scenario: Temporal intelligence in system prompt
+#### Scenario: Task context in system prompt
 - **WHEN** the system prompt is constructed
-- **THEN** it includes information about temporal intelligence capabilities
-- **AND** provides examples of temporal queries and journal analysis
+- **THEN** it includes information about task management capabilities and examples of task queries/updates
 
 ### Requirement: LLM Response Streaming
 The system SHALL stream LLM response tokens as they arrive from the API, displaying them immediately in the chat interface. Streaming MUST maintain all existing functionality including action parsing and citation extraction.

@@ -1,3 +1,5 @@
+export type TaskStatus = 'TODO' | 'DOING' | 'DONE' | 'LATER' | 'NOW' | 'WAITING' | 'CANCELED';
+
 interface Block {
   id?: string;
   content: string;
@@ -7,6 +9,7 @@ interface Block {
   tags: string[];
   references: string[];
   blockRefs: string[];
+  taskStatus?: TaskStatus;
 }
 
 export function parseLogseqContent(content: string): Block[] {
@@ -93,6 +96,20 @@ export function parseLogseqContent(content: string): Block[] {
     return { references, blockRefs };
   }
 
+  function extractTaskStatus(content: string): { taskStatus?: TaskStatus; cleaned: string } {
+    // Match task markers at the start: TODO, DOING, DONE, LATER, NOW, WAITING, CANCELED (case-insensitive)
+    const taskPattern = /^(TODO|DOING|DONE|LATER|NOW|WAITING|CANCELED)\s+(.+)$/i;
+    const match = content.match(taskPattern);
+    
+    if (match) {
+      const status = match[1].toUpperCase() as TaskStatus;
+      const cleaned = match[2];
+      return { taskStatus: status, cleaned };
+    }
+    
+    return { cleaned: content };
+  }
+
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
     if (!line.trim()) {
@@ -110,9 +127,10 @@ export function parseLogseqContent(content: string): Block[] {
     const { properties, cleaned: content2 } = extractProperties(content1);
     const { tags, cleaned: content3 } = extractTags(content2);
     const { references, blockRefs } = extractReferences(content3);
+    const { taskStatus, cleaned: content4 } = extractTaskStatus(content3);
     
     // Don't skip empty content - keep it as is (Logseq allows empty bullets)
-    const finalContent = content3.trim();
+    const finalContent = content4.trim();
     
     const block: Block = {
       id,
@@ -123,6 +141,7 @@ export function parseLogseqContent(content: string): Block[] {
       tags,
       references,
       blockRefs,
+      taskStatus,
     };
 
     while (stack.length > 0 && stack[stack.length - 1].level >= level) {

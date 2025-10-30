@@ -4,7 +4,7 @@
 TBD - created by archiving change add-logseq-ai-chat-mvp. Update Purpose after archive.
 ## Requirements
 ### Requirement: Context Retrieval and Injection
-The system SHALL analyze user queries, search the graph, assemble relevant pages/blocks with metadata (page names, block IDs, modification dates), and send the formatted context to the LLM. When queries explicitly reference a page name or journal date, the system MUST query the graph for that content before constructing the LLM context. The system SHALL respect configurable limits (max pages, blocks per page, total blocks) and apply relevance filtering to ensure only relevant content is included. When user queries mention time periods, date ranges, or temporal concepts, the system SHALL query journals by date range and include temporal context in the context sent to the LLM.
+The system SHALL analyze user queries, search the graph, assemble relevant pages/blocks with metadata (page names, block IDs, modification dates), and send the formatted context to the LLM. When queries explicitly reference a page name or journal date, the system MUST query the graph for that content before constructing the LLM context. The system SHALL respect configurable limits (max pages, blocks per page, total blocks) and apply relevance filtering to ensure only relevant content is included. When user queries mention tasks or task-related keywords, the system SHALL include task context (task status, counts, summaries) in the context sent to the LLM.
 
 #### Scenario: Context includes specific journal when requested
 - **WHEN** user query mentions "today's journal" or a specific date
@@ -36,16 +36,15 @@ The system SHALL analyze user queries, search the graph, assemble relevant pages
 - **WHEN** context settings specify a date range (e.g., only last 30 days)
 - **THEN** only journals within that date range are included in search results
 
-#### Scenario: Include temporal context for date range queries
-- **WHEN** a user query mentions a time period (e.g., "last week", "last month")
-- **THEN** the system queries journals within that date range and includes summaries in context
-- **AND** journal summaries respect configured block limits
+#### Scenario: Task context included when query mentions tasks
+- **WHEN** a user query contains task-related keywords (e.g., "todo", "tasks", "due")
+- **THEN** the system includes task summaries or task lists in the context sent to the LLM
 
-#### Scenario: Include journal comparison results
-- **WHEN** a user query requests journal comparison
-- **THEN** the system includes comparison results (similarity scores, differences) in context
+#### Scenario: Task queries prioritize task results
+- **WHEN** a user explicitly queries tasks (e.g., "show me all TODO items")
+- **THEN** the system uses task query functions instead of general search, prioritizing task results
 
-#### Scenario: Include pattern detection results
-- **WHEN** a user query requests pattern detection
-- **THEN** the system includes detected patterns (recurring tags, topics) in context
+#### Scenario: Task summaries from journals
+- **WHEN** a user asks about tasks in a journal entry or date range
+- **THEN** the system generates task summaries from relevant journal entries and includes them in context
 

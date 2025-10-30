@@ -142,7 +142,7 @@ export default function ChatInterface({ onOpenSidebar, onOpenConversations, conv
       let totalBlocksCount = 0;
       
       // Helper to add a page to context with limits and filtering
-      const addPageToContext = (page: { pageName: string; path: string; blocks: Array<{ content: string; id?: string; level: number }> }) => {
+      const addPageToContext = async (page: { pageName: string; path: string; blocks: Array<{ content: string; id?: string; level: number }> }) => {
         // Check if we've reached max pages
         if (context.length >= maxPages) {
           console.log('[ChatInterface] Max pages reached, skipping:', page.pageName);
@@ -177,9 +177,23 @@ export default function ChatInterface({ onOpenSidebar, onOpenConversations, conv
           level: b.level,
         }));
         
+        // Add task summary for journals if available
+        let excerpt = formatBlocksAsMarkdown(page.blocks) || '';
+        if (page.pageName.startsWith('journals/')) {
+          try {
+            const dateStr = page.pageName.replace('journals/', '').replace(/_/g, '-');
+            const taskSummary = await window.electronAPI.getTaskSummary(dateStr);
+            if (taskSummary) {
+              excerpt = `Journal entry from ${dateStr} (${taskSummary.totalTasks} tasks: ${taskSummary.byStatus.TODO} TODO, ${taskSummary.byStatus.DOING} DOING, ${taskSummary.byStatus.DONE} DONE)`;
+            }
+          } catch (error) {
+            // Ignore errors fetching task summary
+          }
+        }
+        
         context.push({
           pageName: page.pageName,
-          excerpt: formatBlocksAsMarkdown(page.blocks) || '',
+          excerpt,
           filePath: page.path,
           blocks: finalBlocks,
         });
@@ -188,6 +202,70 @@ export default function ChatInterface({ onOpenSidebar, onOpenConversations, conv
         console.log('[ChatInterface] Added page to context:', page.pageName, 'blocks:', finalBlocks.length, 'total blocks:', totalBlocksCount);
         return true;
       };
+      
+      // Check for task-related queries and add task context
+      const taskKeywords = ['todo', 'task', 'tasks', 'due', 'schedule', 'deadline', 'mark as done', 'mark as doing', 'complete task'];
+      const hasTaskQuery = taskKeywords.some(keyword => content.toLowerCase().includes(keyword));
+      
+      if (hasTaskQuery) {
+        try {
+          const lowerContent = content.toLowerCase();
+          
+          // Check for specific task status queries
+          if (lowerContent.includes('todo') || lowerContent.includes('todos')) {
+            const tasks = await window.electronAPI.queryTasksByStatus('TODO');
+            if (tasks.length > 0) {
+              console.log('[ChatInterface] Found', tasks.length, 'TODO tasks');
+              // Add task context to first page or create a summary
+              if (context.length === 0) {
+                context.push({
+                  pageName: 'Tasks',
+                  excerpt: `Found ${tasks.length} TODO tasks`,
+                  blocks: tasks.slice(0, 10).map((t: { taskStatus: string; content: string; id?: string; level: number }) => ({
+                    content: `${t.taskStatus} ${t.content}`,
+                    id: t.id,
+                    level: t.level,
+                  })),
+                });
+              }
+            }
+          } else if (lowerContent.includes('doing')) {
+            const tasks = await window.electronAPI.queryTasksByStatus('DOING');
+            if (tasks.length > 0) {
+              console.log('[ChatInterface] Found', tasks.length, 'DOING tasks');
+              if (context.length === 0) {
+                context.push({
+                  pageName: 'Tasks',
+                  excerpt: `Found ${tasks.length} DOING tasks`,
+                  blocks: tasks.slice(0, 10).map((t: { taskStatus: string; content: string; id?: string; level: number }) => ({
+                    content: `${t.taskStatus} ${t.content}`,
+                    id: t.id,
+                    level: t.level,
+                  })),
+                });
+              }
+            }
+          } else if (lowerContent.includes('due this week') || lowerContent.includes('due this week')) {
+            const tasks = await window.electronAPI.queryTasksDueThisWeek();
+            if (tasks.length > 0) {
+              console.log('[ChatInterface] Found', tasks.length, 'tasks due this week');
+              if (context.length === 0) {
+                context.push({
+                  pageName: 'Tasks',
+                  excerpt: `Found ${tasks.length} tasks due this week`,
+                  blocks: tasks.slice(0, 10).map((t: { taskStatus: string; content: string; id?: string; level: number }) => ({
+                    content: `${t.taskStatus} ${t.content}`,
+                    id: t.id,
+                    level: t.level,
+                  })),
+                });
+              }
+            }
+          }
+        } catch (error) {
+          console.error('[ChatInterface] Error fetching task context:', error);
+        }
+      }
       
       // Check for temporal queries and add journal date range context
       const temporalKeywords = ['last week', 'last month', 'last', 'week', 'month', 'days', 'compare', 'pattern', 'temporal', 'time period', 'date range'];
@@ -217,9 +295,21 @@ export default function ChatInterface({ onOpenSidebar, onOpenConversations, conv
                 level: b.level,
               }));
               
+              // Add task summary if available
+              let excerpt = `Journal entry from ${journal.dateStr}`;
+              try {
+                const dateStr = journal.pageName.replace('journals/', '').replace(/_/g, '-');
+                const taskSummary = await window.electronAPI.getTaskSummary(dateStr);
+                if (taskSummary) {
+                  excerpt += ` (${taskSummary.totalTasks} tasks: ${taskSummary.byStatus.TODO} TODO, ${taskSummary.byStatus.DOING} DOING, ${taskSummary.byStatus.DONE} DONE)`;
+                }
+              } catch (error) {
+                // Ignore errors fetching task summary
+              }
+              
               context.push({
                 pageName: journal.pageName,
-                excerpt: `Journal entry from ${journal.dateStr}`,
+                excerpt,
                 filePath: journal.path,
                 blocks: finalBlocks,
               });
@@ -239,9 +329,22 @@ export default function ChatInterface({ onOpenSidebar, onOpenConversations, conv
                 id: b.id,
                 level: b.level,
               }));
+              
+              // Add task summary if available
+              let excerpt = `Journal entry from ${journal.dateStr}`;
+              try {
+                const dateStr = journal.pageName.replace('journals/', '').replace(/_/g, '-');
+                const taskSummary = await window.electronAPI.getTaskSummary(dateStr);
+                if (taskSummary) {
+                  excerpt += ` (${taskSummary.totalTasks} tasks: ${taskSummary.byStatus.TODO} TODO, ${taskSummary.byStatus.DOING} DOING, ${taskSummary.byStatus.DONE} DONE)`;
+                }
+              } catch (error) {
+                // Ignore errors fetching task summary
+              }
+              
               context.push({
                 pageName: journal.pageName,
-                excerpt: `Journal entry from ${journal.dateStr}`,
+                excerpt,
                 filePath: journal.path,
                 blocks: finalBlocks,
               });
@@ -259,9 +362,22 @@ export default function ChatInterface({ onOpenSidebar, onOpenConversations, conv
                 id: b.id,
                 level: b.level,
               }));
+              
+              // Add task summary if available
+              let excerpt = `Journal entry from ${journal.dateStr}`;
+              try {
+                const dateStr = journal.pageName.replace('journals/', '').replace(/_/g, '-');
+                const taskSummary = await window.electronAPI.getTaskSummary(dateStr);
+                if (taskSummary) {
+                  excerpt += ` (${taskSummary.totalTasks} tasks: ${taskSummary.byStatus.TODO} TODO, ${taskSummary.byStatus.DOING} DOING, ${taskSummary.byStatus.DONE} DONE)`;
+                }
+              } catch (error) {
+                // Ignore errors fetching task summary
+              }
+              
               context.push({
                 pageName: journal.pageName,
-                excerpt: `Journal entry from ${journal.dateStr}`,
+                excerpt,
                 filePath: journal.path,
                 blocks: finalBlocks,
               });
@@ -332,7 +448,7 @@ export default function ChatInterface({ onOpenSidebar, onOpenConversations, conv
         console.log('[ChatInterface] Querying journal:', journalName);
         const journal = await window.electronAPI.getPage(journalName);
         if (journal) {
-          addPageToContext(journal);
+          await addPageToContext(journal);
         } else {
           console.log('[ChatInterface] Journal NOT found:', journalName);
         }
@@ -345,7 +461,7 @@ export default function ChatInterface({ onOpenSidebar, onOpenConversations, conv
           console.log('[ChatInterface] Querying mentioned journal:', journalName);
           const journal = await window.electronAPI.getPage(journalName);
           if (journal) {
-            addPageToContext(journal);
+            await addPageToContext(journal);
           } else {
             console.log('[ChatInterface] Mentioned journal NOT found:', journalName);
           }
@@ -361,7 +477,7 @@ export default function ChatInterface({ onOpenSidebar, onOpenConversations, conv
           if (askingAboutContent || referringToPrevious) {
             const page = await window.electronAPI.getPage(pageName);
             if (page) {
-              addPageToContext(page);
+              await addPageToContext(page);
             }
           }
         }
@@ -372,7 +488,7 @@ export default function ChatInterface({ onOpenSidebar, onOpenConversations, conv
         const lastJournal = Array.from(mentionedJournals)[mentionedJournals.size - 1];
         const journal = await window.electronAPI.getPage(lastJournal);
         if (journal) {
-          addPageToContext(journal);
+          await addPageToContext(journal);
         }
       }
       
@@ -384,7 +500,7 @@ export default function ChatInterface({ onOpenSidebar, onOpenConversations, conv
           const pageName = pageMatch[1];
           const page = await window.electronAPI.getPage(pageName);
           if (page) {
-            addPageToContext(page);
+            await addPageToContext(page);
           }
         }
       }
@@ -514,7 +630,7 @@ export default function ChatInterface({ onOpenSidebar, onOpenConversations, conv
         // Try to get full page data to get file path and full blocks
         const pageData = await window.electronAPI.getPage(result.pageName);
         if (pageData) {
-          addPageToContext(pageData);
+          await addPageToContext(pageData);
         } else {
           // Fallback to search result blocks if full page not available
           const filteredBlocks = filterBlocks(
@@ -613,7 +729,7 @@ export default function ChatInterface({ onOpenSidebar, onOpenConversations, conv
             };
 
             // Parse all LOGSEQ_ACTION tags
-            const actions: Array<{ type?: 'create_journal' | 'create_page' | 'append_to_page'; action?: string; date?: string; pageName?: string; content: string }> = [];
+            const actions: Array<{ type?: 'create_journal' | 'create_page' | 'append_to_page' | 'update_task_status'; action?: string; date?: string; pageName?: string; content?: string; blockId?: string; newStatus?: string }> = [];
             
             for (const match of tagMatches) {
               const parsed = tryParse(match[1]);
@@ -669,7 +785,7 @@ export default function ChatInterface({ onOpenSidebar, onOpenConversations, conv
             // Auto-execute all file operations sequentially
             if (actions.length > 0 && settings.logseqPath) {
               (async () => {
-                const executedActions: Array<{ type: string; pageName?: string; date?: string; fileName: string }> = [];
+                const executedActions: Array<{ type: string; pageName?: string; date?: string; fileName?: string }> = [];
                 
                 for (const action of actions) {
                   if (!action.type) continue;
@@ -712,21 +828,26 @@ export default function ChatInterface({ onOpenSidebar, onOpenConversations, conv
                     let filePath: string | null = null;
                     if (action.type === 'create_journal' && action.date) {
                       console.log('[ChatInterface] Executing create_journal for date:', action.date, 'content length:', action.content?.length || 0);
-                      filePath = await window.electronAPI.createJournalEntry(action.date, action.content);
+                      filePath = await window.electronAPI.createJournalEntry(action.date!, action.content || '');
                       const fileName = filePath.split('/').pop() || '';
                       executedActions.push({ type: 'create_journal', date: action.date, fileName });
                       lastActionKeyRef.current = actionKey;
                     } else if (action.type === 'create_page' && action.pageName) {
                       console.log('[ChatInterface] Executing create_page for:', action.pageName, 'content length:', action.content?.length || 0);
-                      filePath = await window.electronAPI.createPage(action.pageName, action.content);
+                      filePath = await window.electronAPI.createPage(action.pageName, action.content || '');
                       const fileName = filePath.split('/').pop() || '';
                       executedActions.push({ type: 'create_page', pageName: action.pageName, fileName });
                       lastActionKeyRef.current = actionKey;
                     } else if (action.type === 'append_to_page' && action.pageName) {
                       console.log('[ChatInterface] Executing append_to_page for:', action.pageName, 'content length:', action.content?.length || 0);
-                      filePath = await window.electronAPI.appendToPage(action.pageName, action.content);
+                      filePath = await window.electronAPI.appendToPage(action.pageName, action.content || '');
                       const fileName = filePath.split('/').pop() || '';
                       executedActions.push({ type: 'append_to_page', pageName: action.pageName, fileName });
+                      lastActionKeyRef.current = actionKey;
+                    } else if (action.type === 'update_task_status' && action.pageName && action.blockId && action.newStatus) {
+                      console.log('[ChatInterface] Executing update_task_status for:', action.pageName, 'block:', action.blockId, 'new status:', action.newStatus);
+                      await window.electronAPI.updateTaskStatus(action.pageName, action.blockId, action.newStatus);
+                      executedActions.push({ type: 'update_task_status', pageName: action.pageName, fileName: action.pageName.split('/').pop() || '' });
                       lastActionKeyRef.current = actionKey;
                     }
                   } catch (err) {

@@ -4,7 +4,7 @@
 TBD - created by archiving change add-logseq-ai-chat-mvp. Update Purpose after archive.
 ## Requirements
 ### Requirement: Journal and Page Content Creation
-The system SHALL create or append journal entries and pages with correct Logseq formats, including frontmatter, properties, tags, indentation, and block IDs where applicable. When appending to existing journals, the system MUST correctly identify the journal file path and append content, or create the journal with proper date header if it does not exist. When the AI references specific blocks in its responses, the system SHALL generate block references `((block-id))` in the response content to create bidirectional links.
+The system SHALL create or append journal entries and pages with correct Logseq formats, including frontmatter, properties, tags, indentation, and block IDs where applicable. When appending to existing journals, the system MUST correctly identify the journal file path and append content, or create the journal with proper date header if it does not exist. The system SHALL support updating task status markers in existing blocks when requested by the AI assistant.
 
 #### Scenario: Create daily journal entry
 - **WHEN** a user triggers journal creation
@@ -22,11 +22,15 @@ The system SHALL create or append journal entries and pages with correct Logseq 
 - **WHEN** a user creates a new page
 - **THEN** a page file is created under `/pages/` with sanitized name and YAML frontmatter
 
-#### Scenario: AI generates block references in responses
-- **WHEN** the AI references a specific block in its response
-- **THEN** the response includes block reference syntax `((block-id))` to create a bidirectional link
+#### Scenario: Update task status via chat
+- **WHEN** a user requests to update a task status (e.g., "mark 'Review PR' as done")
+- **THEN** the system finds the block containing the task, updates the task marker, and writes the change back to the file
 
-#### Scenario: Block references preserved in content
-- **WHEN** content containing block references is created or updated
-- **THEN** the block references are preserved in the file content
+#### Scenario: Update task status preserves block structure
+- **WHEN** a task status is updated
+- **THEN** the system preserves block ID, indentation, properties, tags, and child blocks
+
+#### Scenario: Task status update triggers re-index
+- **WHEN** a task status is successfully updated
+- **THEN** the system re-indexes the affected page to reflect the change in the graph index
 

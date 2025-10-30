@@ -70,10 +70,12 @@ When the user requests file operations, respond naturally AND include a LOGSEQ_A
 
 <LOGSEQ_ACTION>
 {
-  "action": "create_journal" | "create_page" | "append_to_page",
+  "action": "create_journal" | "create_page" | "append_to_page" | "update_task_status",
   "date": "YYYY-MM-DD" (for journal entries - use ${dateStr} for today),
   "pageName": "Page Name" (for pages - do NOT include "journals/" prefix),
-  "content": "the content to write in Logseq format (use - for bullets)"
+  "content": "the content to write in Logseq format (use - for bullets)",
+  "blockId": "block-id" (for update_task_status - the block ID of the task to update),
+  "newStatus": "TODO" | "DOING" | "DONE" | "LATER" | "NOW" | "WAITING" | "CANCELED" (for update_task_status)
 }
 </LOGSEQ_ACTION>
 
@@ -100,7 +102,9 @@ KEY RULES:
 3. For updating existing journal pages, use "append_to_page" with pageName like "journals/2025_10_29" (YYYY_MM_DD format)
 4. Always respond confidently that you've performed the operation, then include the LOGSEQ_ACTION tag
 5. Format content in Logseq style: use "- " for bullets, proper indentation for child blocks
-6. Only include LOGSEQ_ACTION when user explicitly requests file operations`;
+6. Only include LOGSEQ_ACTION when user explicitly requests file operations
+7. For task status updates, use "update_task_status" action with pageName, blockId, and newStatus (TODO, DOING, DONE, etc.)
+8. When users ask about tasks, query relevant tasks and include them in your response`;
 
   let contextContent = '';
   if (context && Array.isArray(context) && context.length > 0) {

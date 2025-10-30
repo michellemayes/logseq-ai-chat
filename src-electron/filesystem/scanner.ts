@@ -57,3 +57,69 @@ export function parseMarkdown(content: string): { frontmatter: Record<string, un
   };
 }
 
+export async function updateTaskStatus(
+  filePath: string,
+  blockId: string,
+  newStatus: 'TODO' | 'DOING' | 'DONE' | 'LATER' | 'NOW' | 'WAITING' | 'CANCELED'
+): Promise<void> {
+  const content = await readMarkdownFile(filePath);
+  const lines = content.split('\n');
+  const { parseLogseqContent, getAllBlocks } = await import('../graph/parser');
+  
+  // Parse the content to find the block
+  const { body } = parseMarkdown(content);
+  const blocks = parseLogseqContent(body);
+  const allBlocks = getAllBlocks(blocks);
+  
+  // Find the block by ID
+  const blockIndex = allBlocks.findIndex(b => b.id === blockId);
+  if (blockIndex === -1) {
+    throw new Error(`Block with ID ${blockId} not found in file ${filePath}`);
+  }
+  
+  const block = allBlocks[blockIndex];
+  const originalContent = block.content;
+  
+  // Determine original task status and content without status
+  let contentWithoutStatus = originalContent;
+  const taskStatusPattern = /^(TODO|DOING|DONE|LATER|NOW|WAITING|CANCELED)\s+(.+)$/i;
+  const match = originalContent.match(taskStatusPattern);
+  
+  if (match) {
+    contentWithoutStatus = match[2];
+  }
+  
+  // Construct new content with new status
+  const newContent = newStatus === 'DONE' ? contentWithoutStatus : `${newStatus} ${contentWithoutStatus}`;
+  
+  // Find the line in the original file and update it
+  // We need to match the block content in the file
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    // Match bullet with content
+    const bulletMatch = line.match(/^(\s*)(?:[-*+]|\d+\.)\s+(.+)$/);
+    if (bulletMatch) {
+      const lineContent = bulletMatch[2];
+      
+      // Check if this line contains the block ID and original content
+      if (lineContent.includes(blockId) && (lineContent.includes(originalContent) || originalContent.includes(lineContent))) {
+        // Extract indentation
+        const indent = bulletMatch[1];
+        const bullet = bulletMatch[0].match(/^(\s*)([-*+]|\d+\.)/)?.[2] || '-';
+        
+        // Reconstruct the line with new task status
+        // Preserve block ID if present
+        const hasBlockId = lineContent.includes(blockId);
+        const blockIdPart = hasBlockId ? `${blockId} ` : '';
+        const newLine = `${indent}${bullet} ${blockIdPart}${newContent}`;
+        lines[i] = newLine;
+        break;
+      }
+    }
+  }
+  
+  // Write updated content back
+  const updatedContent = lines.join('\n');
+  await writeMarkdownFile(filePath, updatedContent);
+}
+

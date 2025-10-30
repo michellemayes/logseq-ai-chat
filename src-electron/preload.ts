@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron';
-import { Settings, PageContent, Conversation, ConversationMetadata, TraversalResult, RelatedPageResult, OrphanedPage, BlockWithPage, JournalDateRange, JournalWithDate, JournalComparison, JournalPattern } from './types';
+import { Settings, PageContent, Conversation, ConversationMetadata, TraversalResult, RelatedPageResult, OrphanedPage, BlockWithPage, JournalDateRange, JournalWithDate, JournalComparison, JournalPattern, TaskBlock, TaskSummary } from './types';
 
 interface ElectronAPI {
   getSettings: () => Promise<Settings>;
@@ -44,6 +44,14 @@ interface ElectronAPI {
   parseDateRange: (query: string) => Promise<JournalDateRange | null>;
   compareJournals: (date1: string, date2: string) => Promise<JournalComparison | null>;
   detectJournalPatterns: (dateStrings: string[]) => Promise<JournalPattern[]>;
+  // Task queries
+  queryTasksByStatus: (status: string, options?: { pageName?: string; dateRange?: { start: string; end: string } }) => Promise<TaskBlock[]>;
+  queryTasksByPage: (pageName: string) => Promise<TaskBlock[]>;
+  queryTasksByDateRange: (startDateStr: string, endDateStr: string) => Promise<TaskBlock[]>;
+  queryTasksDueThisWeek: () => Promise<TaskBlock[]>;
+  queryTasksDueBetween: (startDateStr: string, endDateStr: string) => Promise<TaskBlock[]>;
+  getTaskSummary: (dateStr: string) => Promise<TaskSummary | null>;
+  updateTaskStatus: (pageName: string, blockId: string, newStatus: string) => Promise<{ success: boolean }>;
   // Conversations
   getConversations: () => Promise<ConversationMetadata[]>;
   getConversation: (id: string) => Promise<Conversation | null>;
@@ -156,6 +164,15 @@ const electronAPI: ElectronAPI = {
   parseDateRange: (query: string) => ipcRenderer.invoke('parse-date-range', query) as Promise<JournalDateRange | null>,
   compareJournals: (date1: string, date2: string) => ipcRenderer.invoke('compare-journals', date1, date2) as Promise<JournalComparison | null>,
   detectJournalPatterns: (dateStrings: string[]) => ipcRenderer.invoke('detect-journal-patterns', dateStrings) as Promise<JournalPattern[]>,
+  
+  // Task queries
+  queryTasksByStatus: (status: string, options?: { pageName?: string; dateRange?: { start: string; end: string } }) => ipcRenderer.invoke('query-tasks-by-status', status, options) as Promise<TaskBlock[]>,
+  queryTasksByPage: (pageName: string) => ipcRenderer.invoke('query-tasks-by-page', pageName) as Promise<TaskBlock[]>,
+  queryTasksByDateRange: (startDateStr: string, endDateStr: string) => ipcRenderer.invoke('query-tasks-by-date-range', startDateStr, endDateStr) as Promise<TaskBlock[]>,
+  queryTasksDueThisWeek: () => ipcRenderer.invoke('query-tasks-due-this-week') as Promise<TaskBlock[]>,
+  queryTasksDueBetween: (startDateStr: string, endDateStr: string) => ipcRenderer.invoke('query-tasks-due-between', startDateStr, endDateStr) as Promise<TaskBlock[]>,
+  getTaskSummary: (dateStr: string) => ipcRenderer.invoke('get-task-summary', dateStr) as Promise<TaskSummary | null>,
+  updateTaskStatus: (pageName: string, blockId: string, newStatus: string) => ipcRenderer.invoke('update-task-status', pageName, blockId, newStatus) as Promise<{ success: boolean }>,
   
   // Conversations
   getConversations: () => ipcRenderer.invoke('get-conversations') as Promise<ConversationMetadata[]>,

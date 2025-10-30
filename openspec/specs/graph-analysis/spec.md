@@ -4,7 +4,7 @@
 TBD - created by archiving change add-logseq-ai-chat-mvp. Update Purpose after archive.
 ## Requirements
 ### Requirement: Logseq Graph Analysis and Indexing
-The system SHALL index pages, blocks, backlinks, forward links, tags, properties, namespaces, and journals to support search and traversal. The system MUST support querying specific pages or journal entries by name or date for direct retrieval when requested by the AI assistant. The system SHALL provide block-level relevance scoring and filtering capabilities to support intelligent context selection. The system SHALL support temporal queries to retrieve multiple journals by date range, compare journal entries across dates, and detect recurring patterns in journals.
+The system SHALL index pages, blocks, backlinks, forward links, tags, properties, namespaces, and journals to support search and traversal. The system MUST support querying specific pages or journal entries by name or date for direct retrieval when requested by the AI assistant. The system SHALL provide block-level relevance scoring and filtering capabilities to support intelligent context selection. The system SHALL parse and index task status markers (TODO, DOING, DONE, LATER, NOW, WAITING, CANCELED) from blocks and support querying tasks by status, page, or date range.
 
 #### Scenario: Query specific page by name
 - **WHEN** a user or AI requests a specific page by name
@@ -32,22 +32,23 @@ The system SHALL index pages, blocks, backlinks, forward links, tags, properties
 - **WHEN** a search result limit is configured
 - **THEN** the system returns at most that many results, sorted by score
 
-#### Scenario: Query journals by date range
-- **WHEN** a user or AI queries journals within a date range (e.g., "what did I write last week?")
-- **THEN** the system returns all journals within the specified date range
-- **AND** journals are returned with date metadata and content summaries
+#### Scenario: Query tasks by status
+- **WHEN** a user or AI queries tasks by status (e.g., "show me all TODO items")
+- **THEN** the system returns all blocks with matching task status across the graph
 
-#### Scenario: Compare journal entries
-- **WHEN** a user or AI requests to compare journals (e.g., "compare today's journal with last week")
-- **THEN** the system compares the journals by content similarity, tag overlap, and activity levels
-- **AND** returns comparison results with similarity scores
+#### Scenario: Query tasks by page
+- **WHEN** a user or AI queries tasks from a specific page
+- **THEN** the system returns all task blocks from that page with their statuses
 
-#### Scenario: Detect recurring patterns in journals
-- **WHEN** a user or AI requests pattern detection (e.g., "what patterns do you see in my journals?")
-- **THEN** the system analyzes journals for recurring tags, topics, or content
-- **AND** returns patterns with frequency and examples
+#### Scenario: Query tasks by date range
+- **WHEN** a user or AI queries tasks within a date range (e.g., "tasks due this week")
+- **THEN** the system returns tasks with scheduled/deadline properties within the date range
 
-#### Scenario: Parse natural language date queries
-- **WHEN** a user query contains natural language date references (e.g., "last week", "last month")
-- **THEN** the system parses the date range and queries journals accordingly
+#### Scenario: Task indexing during graph build
+- **WHEN** the graph index is built or rebuilt
+- **THEN** the system parses task markers from all blocks and indexes them by status and page
+
+#### Scenario: Task summarization from journal
+- **WHEN** a user requests a task summary from a journal entry
+- **THEN** the system returns a summary of all tasks in that journal with status counts and descriptions
 

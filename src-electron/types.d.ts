@@ -143,6 +143,33 @@ export interface JournalPattern {
   description: string;
 }
 
+export interface TaskBlock {
+  id?: string;
+  content: string;
+  level: number;
+  properties: Record<string, string>;
+  tags: string[];
+  references: string[];
+  blockRefs: string[];
+  taskStatus: 'TODO' | 'DOING' | 'DONE' | 'LATER' | 'NOW' | 'WAITING' | 'CANCELED';
+  pageName: string;
+}
+
+export interface TaskSummary {
+  date: string;
+  totalTasks: number;
+  byStatus: {
+    TODO: number;
+    DOING: number;
+    DONE: number;
+    LATER: number;
+    NOW: number;
+    WAITING: number;
+    CANCELED: number;
+  };
+  tasks: TaskBlock[];
+}
+
 export interface ElectronAPI {
   getSettings: () => Promise<Settings>;
   setSettings: (settings: Partial<Settings>) => Promise<Settings>;
@@ -186,6 +213,14 @@ export interface ElectronAPI {
   parseDateRange: (query: string) => Promise<JournalDateRange | null>;
   compareJournals: (date1: string, date2: string) => Promise<JournalComparison | null>;
   detectJournalPatterns: (dateStrings: string[]) => Promise<JournalPattern[]>;
+  // Task queries
+  queryTasksByStatus: (status: string, options?: { pageName?: string; dateRange?: { start: string; end: string } }) => Promise<TaskBlock[]>;
+  queryTasksByPage: (pageName: string) => Promise<TaskBlock[]>;
+  queryTasksByDateRange: (startDateStr: string, endDateStr: string) => Promise<TaskBlock[]>;
+  queryTasksDueThisWeek: () => Promise<TaskBlock[]>;
+  queryTasksDueBetween: (startDateStr: string, endDateStr: string) => Promise<TaskBlock[]>;
+  getTaskSummary: (dateStr: string) => Promise<TaskSummary | null>;
+  updateTaskStatus: (pageName: string, blockId: string, newStatus: string) => Promise<{ success: boolean }>;
   // Conversations
   getConversations: () => Promise<ConversationMetadata[]>;
   getConversation: (id: string) => Promise<Conversation | null>;
