@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron';
-import { Settings, PageContent, Conversation, ConversationMetadata, TraversalResult, RelatedPageResult, OrphanedPage, BlockWithPage } from './types';
+import { Settings, PageContent, Conversation, ConversationMetadata, TraversalResult, RelatedPageResult, OrphanedPage, BlockWithPage, JournalDateRange, JournalWithDate, JournalComparison, JournalPattern } from './types';
 
 interface ElectronAPI {
   getSettings: () => Promise<Settings>;
@@ -36,6 +36,14 @@ interface ElectronAPI {
   createJournalEntry: (date: string, content: string) => Promise<string>;
   createPage: (pageName: string, content: string) => Promise<string>;
   appendToPage: (pageName: string, content: string) => Promise<string>;
+  // Temporal queries
+  queryJournalsByDateRange: (startDateStr: string, endDateStr: string) => Promise<JournalWithDate[]>;
+  queryJournalsLastWeek: () => Promise<JournalWithDate[]>;
+  queryJournalsLastMonth: () => Promise<JournalWithDate[]>;
+  queryJournalsLastNDays: (days: number) => Promise<JournalWithDate[]>;
+  parseDateRange: (query: string) => Promise<JournalDateRange | null>;
+  compareJournals: (date1: string, date2: string) => Promise<JournalComparison | null>;
+  detectJournalPatterns: (dateStrings: string[]) => Promise<JournalPattern[]>;
   // Conversations
   getConversations: () => Promise<ConversationMetadata[]>;
   getConversation: (id: string) => Promise<Conversation | null>;
@@ -139,6 +147,15 @@ const electronAPI: ElectronAPI = {
   createJournalEntry: (date: string, content: string) => ipcRenderer.invoke('create-journal-entry', date, content),
   createPage: (pageName: string, content: string) => ipcRenderer.invoke('create-page', pageName, content),
   appendToPage: (pageName: string, content: string) => ipcRenderer.invoke('append-to-page', pageName, content),
+  
+  // Temporal queries
+  queryJournalsByDateRange: (startDateStr: string, endDateStr: string) => ipcRenderer.invoke('query-journals-by-date-range', startDateStr, endDateStr) as Promise<JournalWithDate[]>,
+  queryJournalsLastWeek: () => ipcRenderer.invoke('query-journals-last-week') as Promise<JournalWithDate[]>,
+  queryJournalsLastMonth: () => ipcRenderer.invoke('query-journals-last-month') as Promise<JournalWithDate[]>,
+  queryJournalsLastNDays: (days: number) => ipcRenderer.invoke('query-journals-last-n-days', days) as Promise<JournalWithDate[]>,
+  parseDateRange: (query: string) => ipcRenderer.invoke('parse-date-range', query) as Promise<JournalDateRange | null>,
+  compareJournals: (date1: string, date2: string) => ipcRenderer.invoke('compare-journals', date1, date2) as Promise<JournalComparison | null>,
+  detectJournalPatterns: (dateStrings: string[]) => ipcRenderer.invoke('detect-journal-patterns', dateStrings) as Promise<JournalPattern[]>,
   
   // Conversations
   getConversations: () => ipcRenderer.invoke('get-conversations') as Promise<ConversationMetadata[]>,

@@ -51,6 +51,7 @@ export interface Settings {
     ollama?: { endpoint: string; model: string };
   };
   theme: 'light' | 'dark' | 'system';
+  primaryColor?: string; // Custom primary color (hex format)
   contextSettings?: ContextSettings;
 }
 
@@ -112,6 +113,36 @@ export interface BlockWithPage {
   }>;
 }
 
+export interface JournalDateRange {
+  startDate: Date;
+  endDate: Date;
+}
+
+export interface JournalWithDate extends PageContent {
+  date: Date;
+  dateStr: string;
+}
+
+export interface JournalComparison {
+  date1: string;
+  date2: string;
+  contentSimilarity: number;
+  sharedTags: string[];
+  uniqueTags1: string[];
+  uniqueTags2: string[];
+  blockCount1: number;
+  blockCount2: number;
+  sharedKeywords: string[];
+}
+
+export interface JournalPattern {
+  type: 'tag' | 'topic' | 'content' | 'temporal';
+  pattern: string;
+  frequency: number;
+  examples: string[];
+  description: string;
+}
+
 export interface ElectronAPI {
   getSettings: () => Promise<Settings>;
   setSettings: (settings: Partial<Settings>) => Promise<Settings>;
@@ -147,6 +178,14 @@ export interface ElectronAPI {
   createJournalEntry: (date: string, content: string) => Promise<string>;
   createPage: (pageName: string, content: string) => Promise<string>;
   appendToPage: (pageName: string, content: string) => Promise<string>;
+  // Temporal queries
+  queryJournalsByDateRange: (startDateStr: string, endDateStr: string) => Promise<JournalWithDate[]>;
+  queryJournalsLastWeek: () => Promise<JournalWithDate[]>;
+  queryJournalsLastMonth: () => Promise<JournalWithDate[]>;
+  queryJournalsLastNDays: (days: number) => Promise<JournalWithDate[]>;
+  parseDateRange: (query: string) => Promise<JournalDateRange | null>;
+  compareJournals: (date1: string, date2: string) => Promise<JournalComparison | null>;
+  detectJournalPatterns: (dateStrings: string[]) => Promise<JournalPattern[]>;
   // Conversations
   getConversations: () => Promise<ConversationMetadata[]>;
   getConversation: (id: string) => Promise<Conversation | null>;

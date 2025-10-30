@@ -59,6 +59,14 @@ export interface ElectronAPI {
   traverseGraph: (pageName: string, maxHops?: number) => Promise<TraversalResult[]>;
   findRelatedPages: (pageName: string, options?: { maxHops?: number; minConnections?: number }) => Promise<RelatedPageResult[]>;
   findOrphanedPages: (options?: { includeTagged?: boolean }) => Promise<OrphanedPage[]>;
+  // Temporal queries
+  queryJournalsByDateRange: (startDateStr: string, endDateStr: string) => Promise<JournalWithDate[]>;
+  queryJournalsLastWeek: () => Promise<JournalWithDate[]>;
+  queryJournalsLastMonth: () => Promise<JournalWithDate[]>;
+  queryJournalsLastNDays: (days: number) => Promise<JournalWithDate[]>;
+  parseDateRange: (query: string) => Promise<JournalDateRange | null>;
+  compareJournals: (date1: string, date2: string) => Promise<JournalComparison | null>;
+  detectJournalPatterns: (dateStrings: string[]) => Promise<JournalPattern[]>;
   openFile: (filePath: string) => Promise<void>;
   createJournalEntry: (date: string, content: string) => Promise<string>;
   createPage: (pageName: string, content: string) => Promise<string>;
@@ -100,6 +108,7 @@ export interface Settings {
     ollama?: { endpoint: string; model: string };
   };
   theme: 'light' | 'dark' | 'system';
+  primaryColor?: string; // Custom primary color (hex format)
   contextSettings?: ContextSettings;
 }
 
@@ -142,6 +151,36 @@ export interface OrphanedPage {
   pageName: string;
   path: string;
   hasTags: boolean;
+}
+
+export interface JournalDateRange {
+  startDate: Date;
+  endDate: Date;
+}
+
+export interface JournalWithDate extends PageContent {
+  date: Date;
+  dateStr: string;
+}
+
+export interface JournalComparison {
+  date1: string;
+  date2: string;
+  contentSimilarity: number;
+  sharedTags: string[];
+  uniqueTags1: string[];
+  uniqueTags2: string[];
+  blockCount1: number;
+  blockCount2: number;
+  sharedKeywords: string[];
+}
+
+export interface JournalPattern {
+  type: 'tag' | 'topic' | 'content' | 'temporal';
+  pattern: string;
+  frequency: number;
+  examples: string[];
+  description: string;
 }
 
 export interface BlockWithPage {

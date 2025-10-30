@@ -3,7 +3,7 @@ import { getSettings, setSettings, getContextSettings } from '../store/settings'
 import { Settings } from '../types';
 import { scanLogseqDirectory, readMarkdownFile, writeMarkdownFile, parseMarkdown } from '../filesystem/scanner';
 import { watchLogseqDirectory } from '../filesystem/watcher';
-import { searchGraph, getPage, getJournal, getConnectedPages, traverseGraph, findRelatedPages, findOrphanedPages, getBlockById } from '../graph/search';
+import { searchGraph, getPage, getJournal, getConnectedPages, traverseGraph, findRelatedPages, findOrphanedPages, getBlockById, parseDateRange, queryJournalsByDateRange, queryJournalsLastWeek, queryJournalsLastMonth, queryJournalsLastNDays, compareJournals, detectJournalPatterns } from '../graph/search';
 import { buildIndex, getIndex } from '../graph/index';
 import { chatWithLLM, createProvider } from '../llm/provider';
 import {
@@ -275,6 +275,48 @@ export function setupIpcHandlers() {
   ipcMain.handle('get-block-with-context', async (_event, blockId: string) => {
     console.log('[ipc/handlers] get-block-with-context called for:', blockId);
     return getBlockById(blockId);
+  });
+
+  // Temporal query handlers
+  ipcMain.handle('query-journals-by-date-range', async (_event, startDateStr: string, endDateStr: string) => {
+    console.log('[ipc/handlers] query-journals-by-date-range called:', startDateStr, 'to', endDateStr);
+    const startDate = new Date(startDateStr);
+    const endDate = new Date(endDateStr);
+    if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+      throw new Error('Invalid date format');
+    }
+    return queryJournalsByDateRange(startDate, endDate);
+  });
+
+  ipcMain.handle('query-journals-last-week', async () => {
+    console.log('[ipc/handlers] query-journals-last-week called');
+    return queryJournalsLastWeek();
+  });
+
+  ipcMain.handle('query-journals-last-month', async () => {
+    console.log('[ipc/handlers] query-journals-last-month called');
+    return queryJournalsLastMonth();
+  });
+
+  ipcMain.handle('query-journals-last-n-days', async (_event, days: number) => {
+    console.log('[ipc/handlers] query-journals-last-n-days called:', days);
+    return queryJournalsLastNDays(days);
+  });
+
+  ipcMain.handle('parse-date-range', async (_event, query: string) => {
+    console.log('[ipc/handlers] parse-date-range called:', query);
+    return parseDateRange(query);
+  });
+
+  ipcMain.handle('compare-journals', async (_event, date1: string, date2: string) => {
+    console.log('[ipc/handlers] compare-journals called:', date1, 'vs', date2);
+    return compareJournals(date1, date2);
+  });
+
+  ipcMain.handle('detect-journal-patterns', async (_event, dateStrings: string[]) => {
+    console.log('[ipc/handlers] detect-journal-patterns called for', dateStrings.length, 'dates');
+    const dates = dateStrings.map(d => new Date(d)).filter(d => !isNaN(d.getTime()));
+    return detectJournalPatterns(dates);
   });
 
   // Graph traversal queries

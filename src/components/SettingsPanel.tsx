@@ -46,8 +46,14 @@ export default function SettingsPanel({ settings, onChange, onSave }: SettingsPa
     return () => { mounted = false; };
   }, [settings.logseqPath]);
   
-  const handleChange = (key: keyof Settings, value: string | ContextSettings) => {
-    onChange({ ...settings, [key]: value });
+  const handleChange = (key: keyof Settings, value: string | ContextSettings | undefined) => {
+    if (value === undefined) {
+      const updated = { ...settings };
+      delete (updated as any)[key];
+      onChange(updated);
+    } else {
+      onChange({ ...settings, [key]: value });
+    }
   };
 
   const handleProviderChange = (provider: 'groq' | 'openai' | 'anthropic' | 'ollama') => {
@@ -191,6 +197,33 @@ export default function SettingsPanel({ settings, onChange, onSave }: SettingsPa
             </option>
           ))}
         </select>
+      </div>
+
+      <div className="settings-section">
+        <label className="settings-label">Primary Color</label>
+        <div className="settings-color-picker-group">
+          <input
+            type="color"
+            className="settings-color-picker"
+            value={settings.primaryColor || (settings.theme === 'dark' ? '#8B6F8F' : '#6B4E71')}
+            onChange={(e) => handleChange('primaryColor', e.target.value)}
+          />
+          <input
+            type="text"
+            className="settings-input settings-color-input"
+            value={settings.primaryColor || ''}
+            onChange={(e) => handleChange('primaryColor', e.target.value || undefined)}
+            placeholder={settings.theme === 'dark' ? '#8B6F8F' : '#6B4E71'}
+            pattern="^#[0-9A-Fa-f]{6}$"
+          />
+          <button
+            className="settings-button settings-reset-color-button"
+            onClick={() => handleChange('primaryColor', undefined)}
+            title="Reset to default theme color"
+          >
+            Reset
+          </button>
+        </div>
       </div>
 
       <div className="settings-section">

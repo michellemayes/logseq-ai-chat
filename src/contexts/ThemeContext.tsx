@@ -41,7 +41,15 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
-  }, [theme]);
+    
+    // Apply custom primary color if set
+    if (settings.primaryColor) {
+      document.documentElement.style.setProperty('--accent', settings.primaryColor);
+    } else {
+      // Reset to default theme color
+      document.documentElement.style.removeProperty('--accent');
+    }
+  }, [theme, settings.primaryColor]);
 
   const toggleTheme = async () => {
     const newTheme = theme === 'light' ? 'dark' : 'light';

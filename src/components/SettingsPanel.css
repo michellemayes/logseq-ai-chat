@@ -130,3 +130,28 @@
   margin-bottom: 0;
 }
 
+.settings-color-picker-group {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.settings-color-picker {
+  width: 60px;
+  height: 40px;
+  padding: 2px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg-secondary);
+  cursor: pointer;
+}
+
+.settings-color-input {
+  flex: 1;
+  min-width: 100px;
+}
+
+.settings-reset-color-button {
+  white-space: nowrap;
+}
+

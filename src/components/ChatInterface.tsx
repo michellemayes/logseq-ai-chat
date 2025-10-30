@@ -189,6 +189,90 @@ export default function ChatInterface({ onOpenSidebar, onOpenConversations, conv
         return true;
       };
       
+      // Check for temporal queries and add journal date range context
+      const temporalKeywords = ['last week', 'last month', 'last', 'week', 'month', 'days', 'compare', 'pattern', 'temporal', 'time period', 'date range'];
+      const hasTemporalQuery = temporalKeywords.some(keyword => content.toLowerCase().includes(keyword));
+      
+      if (hasTemporalQuery) {
+        try {
+          // Try to parse date range from query
+          const dateRange = await window.electronAPI.parseDateRange(content);
+          if (dateRange) {
+            console.log('[ChatInterface] Detected temporal query, fetching journals from', dateRange.startDate, 'to', dateRange.endDate);
+            const journals = await window.electronAPI.queryJournalsByDateRange(
+              dateRange.startDate.toISOString().split('T')[0],
+              dateRange.endDate.toISOString().split('T')[0]
+            );
+            
+            // Add journal summaries to context (respecting limits)
+            for (const journal of journals) {
+              if (context.length >= maxPages) break;
+              if (totalBlocksCount >= maxTotalBlocks) break;
+              
+              const journalBlocks = journal.blocks.slice(0, maxBlocksPerPage);
+              const blocksToAdd = Math.min(journalBlocks.length, maxTotalBlocks - totalBlocksCount);
+              const finalBlocks = journalBlocks.slice(0, blocksToAdd).map((b: { content: string; id?: string; level: number }) => ({
+                content: b.content,
+                id: b.id,
+                level: b.level,
+              }));
+              
+              context.push({
+                pageName: journal.pageName,
+                excerpt: `Journal entry from ${journal.dateStr}`,
+                filePath: journal.path,
+                blocks: finalBlocks,
+              });
+              
+              totalBlocksCount += finalBlocks.length;
+              console.log('[ChatInterface] Added temporal journal to context:', journal.pageName, 'blocks:', finalBlocks.length);
+            }
+          } else if (content.toLowerCase().includes('last week')) {
+            // Fallback: query last week
+            const journals = await window.electronAPI.queryJournalsLastWeek();
+            for (const journal of journals.slice(0, Math.min(7, maxPages))) {
+              if (totalBlocksCount >= maxTotalBlocks) break;
+              const journalBlocks = journal.blocks.slice(0, maxBlocksPerPage);
+              const blocksToAdd = Math.min(journalBlocks.length, maxTotalBlocks - totalBlocksCount);
+              const finalBlocks = journalBlocks.slice(0, blocksToAdd).map((b: { content: string; id?: string; level: number }) => ({
+                content: b.content,
+                id: b.id,
+                level: b.level,
+              }));
+              context.push({
+                pageName: journal.pageName,
+                excerpt: `Journal entry from ${journal.dateStr}`,
+                filePath: journal.path,
+                blocks: finalBlocks,
+              });
+              totalBlocksCount += finalBlocks.length;
+            }
+          } else if (content.toLowerCase().includes('last month')) {
+            // Fallback: query last month
+            const journals = await window.electronAPI.queryJournalsLastMonth();
+            for (const journal of journals.slice(0, Math.min(30, maxPages))) {
+              if (totalBlocksCount >= maxTotalBlocks) break;
+              const journalBlocks = journal.blocks.slice(0, maxBlocksPerPage);
+              const blocksToAdd = Math.min(journalBlocks.length, maxTotalBlocks - totalBlocksCount);
+              const finalBlocks = journalBlocks.slice(0, blocksToAdd).map((b: { content: string; id?: string; level: number }) => ({
+                content: b.content,
+                id: b.id,
+                level: b.level,
+              }));
+              context.push({
+                pageName: journal.pageName,
+                excerpt: `Journal entry from ${journal.dateStr}`,
+                filePath: journal.path,
+                blocks: finalBlocks,
+              });
+              totalBlocksCount += finalBlocks.length;
+            }
+          }
+        } catch (error) {
+          console.error('[ChatInterface] Error fetching temporal context:', error);
+        }
+      }
+      
       // Check conversation history for page/journal references mentioned by AI
       const allMessages = [...messages, { role: 'user' as const, content }];
       const journalRefPattern = /\[\[journals\/(\d{4}_\d{2}_\d{2})\]\]|journals\/(\d{4}_\d{2}_\d{2})/gi;

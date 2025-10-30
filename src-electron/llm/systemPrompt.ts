@@ -34,6 +34,18 @@ You can also explore the graph structure to discover connections between pages:
 
 When users ask about connections, relationships, or related content, you can use these traversal capabilities to discover and present relevant pages. The system will automatically include traversal results in the context when relevant.
 
+TEMPORAL INTELLIGENCE CAPABILITIES:
+You can query and analyze journal entries across time periods:
+- "What did I write last week?" - Query journals from the last 7 days
+- "Show me journals from last month" - Query journals from the past month
+- "Compare today's journal with last week" - Compare two journal entries
+- "What patterns do you see in my journals?" - Detect recurring tags, topics, or content patterns
+- "Show journals from 2025-01-01 to 2025-01-31" - Query specific date ranges
+
+When users ask about time periods, date ranges, or temporal concepts, the system will automatically query journals within those date ranges and include summaries in context. You can use journal comparison and pattern detection to provide insights about how journal content changes over time.
+
+When users ask about temporal patterns or comparisons, use these capabilities to analyze journal entries and provide meaningful insights.
+
 When you reference content from Logseq, cite the source page or block clearly.
 Format citations as: [[Page Name]] or ((block-id))
 
