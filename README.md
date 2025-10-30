@@ -1,15 +1,17 @@
 # Logseq AI Chat
 
-An Electron desktop application that provides an AI chat interface integrated with Logseq. Chat with your notes using Groq LLM with automatic context retrieval from your Logseq knowledge graph.
+An Electron desktop application that provides an AI chat interface integrated with Logseq. Chat with your notes using LLM providers (currently Groq, with OpenAI, Anthropic, and Ollama support planned) with automatic context retrieval from your Logseq knowledge graph.
 
 ## Features
 
 - **File System Integration**: Direct access to your Logseq graph directory
 - **Graph Analysis**: Full-text search, backlinks, forward links, tag and property indexing
-- **LLM Integration**: Groq API support with extensible provider architecture
-- **Context Injection**: Automatic retrieval of relevant content from your notes
+- **LLM Integration**: Streaming responses with Groq API (multi-provider support planned)
+- **Context Injection**: Automatic retrieval of relevant content from your notes with configurable filtering
 - **Content Creation**: Create journal entries and pages with proper Logseq formatting
-- **Modern UI**: Clean chat interface with dark/light theme support and inline citations
+- **Conversation History**: Save and resume conversations locally with search and export
+- **Streaming Responses**: Real-time token streaming for faster perceived response time
+- **Modern UI**: Clean chat interface with dark/light theme support, inline citations, and conversation management
 
 ## Installation
 
@@ -17,7 +19,11 @@ An Electron desktop application that provides an AI chat interface integrated wi
 
 - Node.js 18+ and npm
 - A Logseq graph directory
-- Groq API key ([Get one here](https://console.groq.com/))
+- API key for your chosen LLM provider:
+  - Groq API key ([Get one here](https://console.groq.com/))
+  - OpenAI API key (coming soon)
+  - Anthropic API key (coming soon)
+  - Ollama (local setup, coming soon)
 
 ### Setup
 
@@ -89,8 +95,18 @@ These settings help balance token usage, cost, and response quality. Use stricte
 
 1. Ask questions about your notes
 2. The app automatically searches your Logseq graph for relevant content
-3. AI responses include citations showing which pages/blocks were referenced
-4. Click on citations to see excerpts from source content
+3. AI responses are streamed in real-time as tokens arrive
+4. Responses include citations showing which pages/blocks were referenced
+5. Click on citations to see excerpts from source content
+
+### Conversation Management
+
+- **Create New Conversation**: Click the conversations icon in the header, then click "+ New Conversation"
+- **Resume Previous Conversation**: Open conversations panel and click on any conversation
+- **Search Conversations**: Type in the search box to find conversations by title or content
+- **Rename Conversations**: Double-click a conversation title to rename it
+- **Delete Conversations**: Hover over a conversation and click the trash icon
+- **Export Conversations**: Hover over a conversation and click the export icon to save as markdown
 
 ### Creating Content
 
@@ -116,7 +132,7 @@ logseq-ai-chat/
 │   ├── graph/             # Graph indexing and search
 │   ├── llm/               # LLM provider integration
 │   ├── ipc/               # IPC handlers
-│   └── store/             # Settings storage
+│   └── store/             # Settings and conversation storage
 └── openspec/              # OpenSpec specifications
 ```
 
@@ -132,16 +148,23 @@ logseq-ai-chat/
 
 - **Electron** - Desktop app framework
 - **React + TypeScript** - Frontend UI
-- **Groq API** - LLM provider
+- **Groq API** - LLM provider (with multi-provider architecture planned)
 - **gray-matter** - Frontmatter parsing
 - **chokidar** - File watching
-- **electron-store** - Settings persistence
+- **electron-store** - Settings and conversation persistence
+
+## Roadmap
+
+- **Multi-Provider LLM Support**: Add support for OpenAI, Anthropic, and Ollama providers
+- **Conversation Export**: Export conversations to various formats (already supports markdown)
+- **Enhanced Search**: Advanced conversation search with filters and date ranges
 
 ## Security
 
 - API keys are stored securely using `electron-store`
 - No sensitive data is logged
 - File operations are restricted to the configured Logseq directory
+- Conversations are stored locally and never transmitted
 
 ## License
 
