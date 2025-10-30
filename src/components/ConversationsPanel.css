@@ -42,6 +42,9 @@
   font-weight: 600;
   text-align: center;
   flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .conversations-panel-content {

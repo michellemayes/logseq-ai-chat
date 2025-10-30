@@ -29,6 +29,7 @@ export default function ChatInterface({ onOpenSidebar, onOpenConversations, conv
   const [isStreaming, setIsStreaming] = useState(false);
   const [streamingContent, setStreamingContent] = useState('');
   const [currentConversationId, setCurrentConversationId] = useState<string | null>(null);
+  const [activeConversationTitle, setActiveConversationTitle] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const lastActionKeyRef = useRef<string | null>(null);
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -46,20 +47,24 @@ export default function ChatInterface({ onOpenSidebar, onOpenConversations, conv
           if (conv) {
             setMessages(conv.messages);
             setCurrentConversationId(conv.id);
+            setActiveConversationTitle(conv.title);
           } else {
             // Conversation not found, clear messages
             setMessages([]);
             setCurrentConversationId(null);
+            setActiveConversationTitle(null);
           }
         } catch (error) {
           console.error('Failed to load conversation:', error);
           setMessages([]);
           setCurrentConversationId(null);
+          setActiveConversationTitle(null);
         }
       } else {
         // No conversationId provided - clear messages
         setMessages([]);
         setCurrentConversationId(null);
+        setActiveConversationTitle(null);
       }
     };
     loadConversation();
@@ -82,6 +87,7 @@ export default function ChatInterface({ onOpenSidebar, onOpenConversations, conv
           const newConv = await window.electronAPI.createConversation(title);
           convId = newConv.id;
           setCurrentConversationId(convId);
+          setActiveConversationTitle(newConv.title);
           if (onConversationChange) {
             onConversationChange(convId);
           }
@@ -101,6 +107,7 @@ export default function ChatInterface({ onOpenSidebar, onOpenConversations, conv
         }
 
         await window.electronAPI.saveConversation(conv);
+        setActiveConversationTitle(conv.title);
       } catch (error) {
         console.error('Failed to save conversation:', error);
       }
@@ -596,9 +603,26 @@ export default function ChatInterface({ onOpenSidebar, onOpenConversations, conv
     window.electronAPI.rebuildIndex?.().catch(() => {});
   }, []);
 
+  const handleRenameConversation = async (id: string, newTitle: string) => {
+    try {
+      await window.electronAPI.updateConversationTitle(id, newTitle);
+      setActiveConversationTitle(newTitle);
+    } catch (error) {
+      console.error('Failed to rename conversation:', error);
+    }
+  };
+
   return (
     <div className="chat-interface">
-      <Header onOpenSidebar={onOpenSidebar} onOpenConversations={onOpenConversations} onToggleTheme={toggleTheme} theme={theme} />
+      <Header 
+        onOpenSidebar={onOpenSidebar} 
+        onOpenConversations={onOpenConversations} 
+        onToggleTheme={toggleTheme} 
+        theme={theme}
+        activeConversationTitle={activeConversationTitle}
+        activeConversationId={currentConversationId}
+        onRenameConversation={handleRenameConversation}
+      />
       <MessageList messages={messages} loading={loading || isStreaming} endRef={messagesEndRef} />
       <MessageInput onSend={handleSend} disabled={loading || !settings.apiKey || !settings.logseqPath} />
     </div>

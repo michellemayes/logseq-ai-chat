@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import './Header.css';
 
 interface HeaderProps {
@@ -5,9 +6,61 @@ interface HeaderProps {
   onOpenConversations: () => void;
   onToggleTheme: () => void;
   theme: 'light' | 'dark';
+  activeConversationTitle?: string | null;
+  activeConversationId?: string | null;
+  onRenameConversation?: (id: string, newTitle: string) => void;
 }
 
-export default function Header({ onOpenSidebar, onOpenConversations, onToggleTheme, theme }: HeaderProps) {
+export default function Header({ 
+  onOpenSidebar, 
+  onOpenConversations, 
+  onToggleTheme, 
+  theme, 
+  activeConversationTitle,
+  activeConversationId,
+  onRenameConversation 
+}: HeaderProps) {
+  const [isEditing, setIsEditing] = useState(false);
+  const [editTitle, setEditTitle] = useState('');
+
+  const handleStartEdit = () => {
+    if (activeConversationTitle && activeConversationId) {
+      setEditTitle(activeConversationTitle);
+      setIsEditing(true);
+    }
+  };
+
+  const handleSaveEdit = async () => {
+    if (activeConversationId && editTitle.trim() && onRenameConversation) {
+      await onRenameConversation(activeConversationId, editTitle.trim());
+      // Update local state immediately so UI reflects change before prop updates
+      setIsEditing(false);
+      setEditTitle('');
+    } else {
+      setIsEditing(false);
+      setEditTitle('');
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setIsEditing(false);
+    setEditTitle('');
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      handleSaveEdit();
+    } else if (e.key === 'Escape') {
+      handleCancelEdit();
+    }
+  };
+
+  // Reset editing state when conversation ID changes (but not when title changes)
+  useEffect(() => {
+    setIsEditing(false);
+    setEditTitle('');
+  }, [activeConversationId]);
+
   return (
     <header className="header">
       <button className="header-button" onClick={onOpenConversations} aria-label="Conversations">
@@ -21,7 +74,28 @@ export default function Header({ onOpenSidebar, onOpenConversations, onToggleThe
             C497.804,402.748,512,366.661,512,327.249z" fill="currentColor"/>
         </svg>
       </button>
-      <h1 className="header-title">Logseq AI Chat</h1>
+      <div className="header-title-container">
+        {isEditing && activeConversationId ? (
+          <input
+            type="text"
+            value={editTitle}
+            onChange={(e) => setEditTitle(e.target.value)}
+            onBlur={handleSaveEdit}
+            onKeyDown={handleKeyDown}
+            className="header-title-input"
+            autoFocus
+          />
+        ) : (
+          <h1 
+            className="header-title"
+            onClick={activeConversationId ? handleStartEdit : undefined}
+            style={{ cursor: activeConversationId ? 'pointer' : 'default' }}
+            title={activeConversationId ? 'Click to edit' : undefined}
+          >
+            {activeConversationTitle || 'Logseq AI Chat'}
+          </h1>
+        )}
+      </div>
       <div className="header-actions">
         <button className="header-button" onClick={onOpenSidebar} aria-label="Settings">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">

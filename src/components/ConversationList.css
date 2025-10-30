@@ -108,7 +108,8 @@
 }
 
 .conversation-delete-button,
-.conversation-export-button {
+.conversation-export-button,
+.conversation-edit-button {
   background: none;
   border: none;
   color: var(--text-secondary);
@@ -126,12 +127,14 @@
 }
 
 .conversation-item:hover .conversation-delete-button,
-.conversation-item:hover .conversation-export-button {
+.conversation-item:hover .conversation-export-button,
+.conversation-item:hover .conversation-edit-button {
   opacity: 1;
 }
 
 .conversation-item.active .conversation-delete-button,
-.conversation-item.active .conversation-export-button {
+.conversation-item.active .conversation-export-button,
+.conversation-item.active .conversation-edit-button {
   color: white;
   opacity: 0.8;
 }
