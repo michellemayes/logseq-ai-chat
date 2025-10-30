@@ -67,6 +67,7 @@ export interface ElectronAPI {
   searchConversations: (query: string) => Promise<ConversationMetadata[]>;
   clearAllConversations: () => Promise<void>;
   updateConversationTitle: (id: string, title: string) => Promise<void>;
+  exportConversation: (id: string, defaultPath?: string) => Promise<string | null>;
 }
 
 export interface ContextSettings {

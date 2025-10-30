@@ -107,11 +107,11 @@
   border-color: var(--accent);
 }
 
-.conversation-delete-button {
+.conversation-delete-button,
+.conversation-export-button {
   background: none;
   border: none;
   color: var(--text-secondary);
-  font-size: 20px;
   cursor: pointer;
   padding: 0;
   width: 24px;
@@ -120,13 +120,18 @@
   opacity: 0;
   transition: opacity 0.2s;
   flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.conversation-item:hover .conversation-delete-button {
+.conversation-item:hover .conversation-delete-button,
+.conversation-item:hover .conversation-export-button {
   opacity: 1;
 }
 
-.conversation-item.active .conversation-delete-button {
+.conversation-item.active .conversation-delete-button,
+.conversation-item.active .conversation-export-button {
   color: white;
   opacity: 0.8;
 }

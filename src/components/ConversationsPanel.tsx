@@ -109,6 +109,19 @@ export default function ConversationsPanel({ isOpen, onClose, onSelectConversati
     }
   };
 
+  const handleExportConversation = async (id: string) => {
+    try {
+      const filePath = await window.electronAPI.exportConversation(id);
+      if (filePath) {
+        // Show success message (could be improved with a toast notification)
+        alert(`Conversation exported to:\n${filePath}`);
+      }
+    } catch (error) {
+      console.error('Failed to export conversation:', error);
+      alert(`Failed to export conversation: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  };
+
   return (
     <>
       {isOpen && <div className="conversations-overlay" onClick={onClose} />}
@@ -133,6 +146,7 @@ export default function ConversationsPanel({ isOpen, onClose, onSelectConversati
             onDeleteConversation={handleDeleteConversation}
             onNewConversation={handleNewConversation}
             onRenameConversation={handleRenameConversation}
+            onExportConversation={handleExportConversation}
             searchQuery={searchQuery}
           />
         </div>

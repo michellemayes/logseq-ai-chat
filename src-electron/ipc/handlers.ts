@@ -20,7 +20,9 @@ import {
   clearAllConversations,
   updateConversationTitle,
 } from '../store/conversations';
+import { formatConversationAsMarkdown, sanitizeFilename } from '../store/conversationExport';
 import { Conversation } from '../types';
+import { writeFile } from 'fs/promises';
 
 export function setupIpcHandlers() {
   // Settings
@@ -484,6 +486,33 @@ export function setupIpcHandlers() {
 
   ipcMain.handle('update-conversation-title', async (_event, id: string, title: string) => {
     updateConversationTitle(id, title);
+  });
+
+  ipcMain.handle('export-conversation', async (_event, id: string, defaultPath?: string) => {
+    const conversation = getConversation(id);
+    if (!conversation) {
+      throw new Error('Conversation not found');
+    }
+
+    const markdown = formatConversationAsMarkdown(conversation);
+    const sanitizedTitle = sanitizeFilename(conversation.title);
+    const dateStr = new Date(conversation.createdAt).toISOString().split('T')[0];
+    const defaultFilename = `${sanitizedTitle}_${dateStr}.md`;
+
+    const result = await dialog.showSaveDialog({
+      defaultPath: defaultPath || defaultFilename,
+      filters: [
+        { name: 'Markdown', extensions: ['md'] },
+        { name: 'All Files', extensions: ['*'] },
+      ],
+    });
+
+    if (result.canceled || !result.filePath) {
+      return null;
+    }
+
+    await writeFile(result.filePath, markdown, 'utf-8');
+    return result.filePath;
   });
 }
 
