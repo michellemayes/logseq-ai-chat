@@ -4,7 +4,7 @@
 TBD - created by archiving change add-logseq-ai-chat-mvp. Update Purpose after archive.
 ## Requirements
 ### Requirement: LLM Provider Integration (Groq)
-The system SHALL integrate with Groq API for LLM responses. The Groq provider MUST support both streaming and non-streaming modes, with streaming as the preferred method. The provider SHALL use Server-Sent Events (SSE) format for streaming responses and parse tokens from the SSE stream. The system prompt SHALL inform the AI about graph traversal capabilities and enable it to use traversal queries for discovery and exploration.
+The system SHALL integrate with Groq API for LLM responses. The Groq provider MUST support both streaming and non-streaming modes, with streaming as the preferred method. The provider SHALL use Server-Sent Events (SSE) format for streaming responses and parse tokens from the SSE stream. The system prompt SHALL inform the AI about block reference capabilities and instruct it to use block references `((block-id))` when referencing specific blocks.
 
 #### Scenario: AI reads journal entry
 - **WHEN** user asks about a journal entry
@@ -23,15 +23,15 @@ The system SHALL integrate with Groq API for LLM responses. The Groq provider MU
 - **THEN** the system prompt informs the AI of direct graph access
 - **AND** citations are included in the streamed response
 
-#### Scenario: AI uses graph traversal for discovery
-- **WHEN** a user asks about connected or related pages (e.g., "show pages connected to X")
-- **THEN** the AI recognizes the query type and uses graph traversal functions
-- **AND** traversal results are included in the response with citations
+#### Scenario: AI generates block references
+- **WHEN** the AI references a specific block in its response
+- **THEN** the AI includes block reference syntax `((block-id))` in the response
+- **AND** the block reference creates a bidirectional link to the referenced block
 
-#### Scenario: Graph traversal capabilities in system prompt
+#### Scenario: Block reference capabilities in system prompt
 - **WHEN** the system prompt is constructed
-- **THEN** it includes information about graph traversal capabilities
-- **AND** provides examples of traversal queries and when to use them
+- **THEN** it includes information about block references and examples of how to use them
+- **AND** it instructs the AI to use block references when referencing specific blocks
 
 ### Requirement: LLM Response Streaming
 The system SHALL stream LLM response tokens as they arrive from the API, displaying them immediately in the chat interface. Streaming MUST maintain all existing functionality including action parsing and citation extraction.
@@ -53,6 +53,11 @@ The system SHALL stream LLM response tokens as they arrive from the API, display
 - **THEN** the full response is accumulated during streaming
 - **AND** action parsing occurs after the stream completes
 - **AND** file operations execute as normal
+
+#### Scenario: Parse block references from streamed response
+- **WHEN** a streamed response contains block references `((block-id))`
+- **THEN** block references are parsed from the complete response
+- **AND** block references are rendered as clickable links in the UI
 
 ### Requirement: Streaming UI Feedback
 The system SHALL provide visual feedback during streaming, including a typing indicator before the first token arrives and smooth content updates as tokens stream in.

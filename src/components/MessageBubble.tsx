@@ -2,7 +2,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Message } from '../types';
 import './MessageBubble.css';
-import { useRef, useState, useLayoutEffect } from 'react';
+import { useRef, useState, useLayoutEffect, useCallback } from 'react';
 
 interface MessageBubbleProps {
   message: Message;
@@ -13,6 +13,9 @@ export default function MessageBubble({ message }: MessageBubbleProps) {
   const tooltipRef = useRef<HTMLDivElement>(null);
   const [tooltipVisible, setTooltipVisible] = useState(false);
   const [tooltipPos, setTooltipPos] = useState<{ top: number; left: number }>({ top: 0, left: 0 });
+  const [blockHoverId, setBlockHoverId] = useState<string | null>(null);
+  const [blockPreview, setBlockPreview] = useState<string | null>(null);
+  const [citationsExpanded, setCitationsExpanded] = useState(false);
 
   useLayoutEffect(() => {
     if (!tooltipVisible || !bubbleRef.current || !tooltipRef.current) return;
@@ -31,6 +34,48 @@ export default function MessageBubble({ message }: MessageBubbleProps) {
 
     setTooltipPos({ top, left });
   }, [tooltipVisible]);
+
+  const handleBlockReferenceClick = useCallback(async (blockId: string) => {
+    try {
+      const blockWithPage = await window.electronAPI.getBlockById(blockId);
+      if (blockWithPage) {
+        // Open the parent page file
+        await window.electronAPI.openFile(blockWithPage.parentPage.path);
+        // TODO: Add block highlighting/navigation animation
+      } else {
+        console.error('Block not found:', blockId);
+        // Could show error message to user
+      }
+    } catch (error) {
+      console.error('Failed to navigate to block:', error);
+    }
+  }, []);
+
+  const handleBlockReferenceHover = useCallback(async (blockId: string) => {
+    setBlockHoverId(blockId);
+    try {
+      const blockWithPage = await window.electronAPI.getBlockById(blockId);
+      if (blockWithPage) {
+        setBlockPreview(blockWithPage.block.content.substring(0, 200));
+      } else {
+        setBlockPreview(null);
+      }
+    } catch (error) {
+      setBlockPreview(null);
+    }
+  }, []);
+
+  const handleBlockReferenceLeave = useCallback(() => {
+    setBlockHoverId(null);
+    setBlockPreview(null);
+  }, []);
+
+  // Process content to replace block references with markdown links
+  const processedContent = message.role === 'assistant' && message.content
+    ? message.content.replace(/\(\(([^)]+)\)\)/g, (match, blockId) => {
+        return `[${match}](block://${blockId})`; // Use custom protocol to identify block references
+      })
+    : message.content;
 
   return (
     <div className={`message-bubble ${message.role}`}>
@@ -54,8 +99,31 @@ export default function MessageBubble({ message }: MessageBubbleProps) {
       )}
       <div className="message-content">
         {message.role === 'assistant' ? (
-          <ReactMarkdown remarkPlugins={[remarkGfm]}>
-            {message.content}
+          <ReactMarkdown 
+            remarkPlugins={[remarkGfm]}
+            components={{
+              a: ({ href, children, ...props }) => {
+                // Check if this is a block reference (custom protocol)
+                if (href && href.startsWith('block://')) {
+                  const blockId = href.replace('block://', '');
+                  return (
+                    <span
+                      className="block-reference"
+                      onClick={() => handleBlockReferenceClick(blockId)}
+                      onMouseEnter={() => handleBlockReferenceHover(blockId)}
+                      onMouseLeave={handleBlockReferenceLeave}
+                      title={blockPreview && blockHoverId === blockId ? blockPreview : undefined}
+                    >
+                      {children}
+                    </span>
+                  );
+                }
+                // Regular link
+                return <a href={href} {...props}>{children}</a>;
+              },
+            }}
+          >
+            {processedContent}
           </ReactMarkdown>
         ) : (
           message.content
@@ -63,25 +131,35 @@ export default function MessageBubble({ message }: MessageBubbleProps) {
       </div>
       {message.citations && message.citations.length > 0 && (
         <div className="citations">
-          <div className="citations-header">Sources:</div>
-          {message.citations.map((citation: { pageName: string; excerpt: string; filePath?: string }, idx: number) => (
-            <div key={idx} className="citation-card">
-              <div 
-                className={`citation-page ${citation.filePath ? 'citation-page-clickable' : ''}`}
-                onClick={citation.filePath ? () => {
-                  window.electronAPI.openFile(citation.filePath!);
-                } : undefined}
-                title={citation.filePath ? `Click to open: ${citation.filePath}` : undefined}
-              >
-                {citation.pageName}
-              </div>
-              <div className="citation-excerpt">
-                <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                  {citation.excerpt}
-                </ReactMarkdown>
-              </div>
+          <div 
+            className="citations-header citations-header-clickable"
+            onClick={() => setCitationsExpanded(!citationsExpanded)}
+          >
+            <span className="citations-toggle">{citationsExpanded ? '▼' : '▶'}</span>
+            Sources ({message.citations.length}):
+          </div>
+          {citationsExpanded && (
+            <div className="citations-content">
+              {message.citations.map((citation: { pageName: string; excerpt: string; filePath?: string }, idx: number) => (
+                <div key={idx} className="citation-card">
+                  <div 
+                    className={`citation-page ${citation.filePath ? 'citation-page-clickable' : ''}`}
+                    onClick={citation.filePath ? () => {
+                      window.electronAPI.openFile(citation.filePath!);
+                    } : undefined}
+                    title={citation.filePath ? `Click to open: ${citation.filePath}` : undefined}
+                  >
+                    {citation.pageName}
+                  </div>
+                  <div className="citation-excerpt">
+                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                      {citation.excerpt}
+                    </ReactMarkdown>
+                  </div>
+                </div>
+              ))}
             </div>
-          ))}
+          )}
         </div>
       )}
     </div>

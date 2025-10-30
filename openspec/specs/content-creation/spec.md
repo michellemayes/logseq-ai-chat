@@ -4,7 +4,7 @@
 TBD - created by archiving change add-logseq-ai-chat-mvp. Update Purpose after archive.
 ## Requirements
 ### Requirement: Journal and Page Content Creation
-The system SHALL create or append journal entries and pages with correct Logseq formats, including frontmatter, properties, tags, indentation, and block IDs where applicable. When appending to existing journals, the system MUST correctly identify the journal file path and append content, or create the journal with proper date header if it does not exist.
+The system SHALL create or append journal entries and pages with correct Logseq formats, including frontmatter, properties, tags, indentation, and block IDs where applicable. When appending to existing journals, the system MUST correctly identify the journal file path and append content, or create the journal with proper date header if it does not exist. When the AI references specific blocks in its responses, the system SHALL generate block references `((block-id))` in the response content to create bidirectional links.
 
 #### Scenario: Create daily journal entry
 - **WHEN** a user triggers journal creation
@@ -21,4 +21,12 @@ The system SHALL create or append journal entries and pages with correct Logseq 
 #### Scenario: Create page with sanitized name
 - **WHEN** a user creates a new page
 - **THEN** a page file is created under `/pages/` with sanitized name and YAML frontmatter
+
+#### Scenario: AI generates block references in responses
+- **WHEN** the AI references a specific block in its response
+- **THEN** the response includes block reference syntax `((block-id))` to create a bidirectional link
+
+#### Scenario: Block references preserved in content
+- **WHEN** content containing block references is created or updated
+- **THEN** the block references are preserved in the file content
 

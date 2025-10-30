@@ -4,7 +4,7 @@
 TBD - created by archiving change add-logseq-ai-chat-mvp. Update Purpose after archive.
 ## Requirements
 ### Requirement: Chat UI and Citations Experience
-The system SHALL provide a single-panel chat interface with inline citations, context cards, and a collapsible sidebar for settings and actions. Theme toggle must persist preference and default to system setting on first launch. The interface SHALL support streaming responses with real-time token display and typing indicators. When graph traversal queries are executed, the UI SHALL display connected pages, related pages, or orphaned pages with appropriate formatting and navigation.
+The system SHALL provide a single-panel chat interface with inline citations, context cards, and a collapsible sidebar for settings and actions. Theme toggle must persist preference and default to system setting on first launch. The interface SHALL support streaming responses with real-time token display and typing indicators. Block references `((block-id))` in messages SHALL be rendered as clickable links that navigate to the referenced blocks.
 
 #### Scenario: Display citations with context
 - **WHEN** an AI response uses Logseq context
@@ -16,23 +16,22 @@ The system SHALL provide a single-panel chat interface with inline citations, co
 - **AND** the UI provides visual feedback during streaming
 - **AND** citations are extracted after streaming completes
 
-#### Scenario: Display connected pages
-- **WHEN** a traversal query returns connected pages
-- **THEN** connected pages are displayed in a structured format
-- **AND** pages are grouped by hop level if multi-hop traversal
-- **AND** connected pages are clickable to navigate
+#### Scenario: Render block references as clickable links
+- **WHEN** a message contains block references `((block-id))`
+- **THEN** block references are rendered as clickable links
+- **AND** clicking a block reference navigates to the referenced block
+- **AND** block references are visually distinct from regular text
 
-#### Scenario: Display related pages
-- **WHEN** a related pages query is executed
-- **THEN** related pages are displayed with connection strength indicators
-- **AND** pages are ranked by relevance/connection strength
-- **AND** related pages are clickable to navigate
+#### Scenario: Navigate to referenced block
+- **WHEN** a user clicks a block reference link
+- **THEN** the system queries the block by ID
+- **AND** opens the parent page containing the block
+- **AND** scrolls to or highlights the referenced block
 
-#### Scenario: Display orphaned pages
-- **WHEN** an orphaned pages query is executed
-- **THEN** orphaned pages are displayed in a list format
-- **AND** pages show metadata (creation date, modification date)
-- **AND** orphaned pages are clickable to navigate
+#### Scenario: Handle missing block references
+- **WHEN** a block reference points to a non-existent block
+- **THEN** the system displays an error message or indicates the block is not found
+- **AND** the block reference is still visible but not clickable
 
 ### Requirement: Streaming Response Display
 The system SHALL display streaming LLM responses with tokens appearing in real-time. The UI SHALL show a typing indicator during stream initialization and update smoothly as tokens arrive.
@@ -54,7 +53,7 @@ The system SHALL display streaming LLM responses with tokens appearing in real-t
 - **THEN** the typing indicator is removed
 - **AND** the final message content is finalized
 - **AND** citations and actions are processed from the complete response
-- **AND** traversal results are displayed if present
+- **AND** block references are parsed and rendered as clickable links
 
 ### Requirement: Conversation Persistence
 The system SHALL persist conversations to local storage and restore them across app sessions. Conversations MUST be auto-saved as messages are added, and the system SHALL handle missing or corrupted conversation data gracefully.

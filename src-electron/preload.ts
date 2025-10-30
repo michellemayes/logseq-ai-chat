@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron';
-import { Settings, PageContent, Conversation, ConversationMetadata, TraversalResult, RelatedPageResult, OrphanedPage } from './types';
+import { Settings, PageContent, Conversation, ConversationMetadata, TraversalResult, RelatedPageResult, OrphanedPage, BlockWithPage } from './types';
 
 interface ElectronAPI {
   getSettings: () => Promise<Settings>;
@@ -23,6 +23,8 @@ interface ElectronAPI {
   search: (query: string) => Promise<any[]>;
   getPage: (pageName: string) => Promise<PageContent | null>;
   getJournal: (dateStr: string) => Promise<PageContent | null>;
+  getBlockById: (blockId: string) => Promise<BlockWithPage | null>;
+  getBlockWithContext: (blockId: string) => Promise<BlockWithPage | null>;
   rebuildIndex: () => Promise<{ files: number; journalFiles: number }>;
   getIndexStats: () => Promise<{ pages: number; journals: number }>;
   // Graph traversal
@@ -121,6 +123,8 @@ const electronAPI: ElectronAPI = {
   // Graph queries
   getPage: (pageName: string) => ipcRenderer.invoke('get-page', pageName) as Promise<PageContent | null>,
   getJournal: (dateStr: string) => ipcRenderer.invoke('get-journal', dateStr) as Promise<PageContent | null>,
+  getBlockById: (blockId: string) => ipcRenderer.invoke('get-block-by-id', blockId) as Promise<BlockWithPage | null>,
+  getBlockWithContext: (blockId: string) => ipcRenderer.invoke('get-block-with-context', blockId) as Promise<BlockWithPage | null>,
   
   // Graph traversal
   getConnectedPages: (pageName: string) => ipcRenderer.invoke('get-connected-pages', pageName) as Promise<string[]>,

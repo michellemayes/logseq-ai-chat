@@ -25,6 +25,7 @@ export interface GraphIndex {
   tags: Map<string, Set<string>>;
   properties: Map<string, Set<string>>;
   searchIndex: Map<string, string[]>;
+  blockIds: Map<string, { pageName: string; blockIndex: number }>;
 }
 
 let graphIndex: GraphIndex = {
@@ -33,6 +34,7 @@ let graphIndex: GraphIndex = {
   tags: new Map(),
   properties: new Map(),
   searchIndex: new Map(),
+  blockIds: new Map(),
 };
 
 export async function buildIndex(filePaths: string[], rootPath: string): Promise<void> {
@@ -41,6 +43,7 @@ export async function buildIndex(filePaths: string[], rootPath: string): Promise
   const tags = new Map<string, Set<string>>();
   const properties = new Map<string, Set<string>>();
   const searchIndex = new Map<string, string[]>();
+  const blockIds = new Map<string, { pageName: string; blockIndex: number }>();
 
   for (const filePath of filePaths) {
     try {
@@ -53,7 +56,18 @@ export async function buildIndex(filePaths: string[], rootPath: string): Promise
       const allTags = new Set<string>();
       const allProperties: Record<string, string> = {};
 
-      for (const block of allBlocks) {
+      for (let blockIndex = 0; blockIndex < allBlocks.length; blockIndex++) {
+        const block = allBlocks[blockIndex];
+        
+        // Index block IDs
+        if (block.id) {
+          if (blockIds.has(block.id)) {
+            console.warn(`[graph/index] Duplicate block ID found: ${block.id} in page ${pageName} (already exists in ${blockIds.get(block.id)?.pageName})`);
+          } else {
+            blockIds.set(block.id, { pageName, blockIndex });
+          }
+        }
+        
         block.tags.forEach((tag) => allTags.add(tag));
         Object.assign(allProperties, block.properties);
         
@@ -112,10 +126,11 @@ export async function buildIndex(filePaths: string[], rootPath: string): Promise
     tags,
     properties,
     searchIndex,
+    blockIds,
   };
   
   const journalPages = Array.from(pages.keys()).filter(k => k.startsWith('journals/'));
-  console.log('[graph/index] Index complete:', pages.size, 'pages,', journalPages.length, 'journals');
+  console.log('[graph/index] Index complete:', pages.size, 'pages,', journalPages.length, 'journals,', blockIds.size, 'block IDs');
 }
 
 function getPageName(filePath: string, rootPath: string): string {

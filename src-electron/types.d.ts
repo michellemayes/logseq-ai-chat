@@ -88,6 +88,30 @@ export interface OrphanedPage {
   hasTags: boolean;
 }
 
+export interface BlockWithPage {
+  block: {
+    id?: string;
+    content: string;
+    level: number;
+    properties: Record<string, string>;
+    tags: string[];
+    references: string[];
+    blockRefs: string[];
+  };
+  pageName: string;
+  blockIndex: number;
+  parentPage: PageContent;
+  siblingBlocks?: Array<{
+    id?: string;
+    content: string;
+    level: number;
+    properties: Record<string, string>;
+    tags: string[];
+    references: string[];
+    blockRefs: string[];
+  }>;
+}
+
 export interface ElectronAPI {
   getSettings: () => Promise<Settings>;
   setSettings: (settings: Partial<Settings>) => Promise<Settings>;
@@ -110,6 +134,8 @@ export interface ElectronAPI {
   search: (query: string) => Promise<Array<{ pageName: string; score: number; excerpt: string; blocks: Array<{ content: string; id?: string }> }>>;
   getPage: (pageName: string) => Promise<PageContent | null>;
   getJournal: (dateStr: string) => Promise<PageContent | null>;
+  getBlockById: (blockId: string) => Promise<BlockWithPage | null>;
+  getBlockWithContext: (blockId: string) => Promise<BlockWithPage | null>;
   rebuildIndex: () => Promise<{ files: number; journalFiles: number }>;
   getIndexStats: () => Promise<{ pages: number; journals: number }>;
   // Graph traversal

@@ -332,3 +332,85 @@ export function getJournal(dateStr: string): PageContent | null {
   return getPage(journalPageName);
 }
 
+export interface BlockWithPage {
+  block: {
+    id?: string;
+    content: string;
+    level: number;
+    properties: Record<string, string>;
+    tags: string[];
+    references: string[];
+    blockRefs: string[];
+  };
+  pageName: string;
+  blockIndex: number;
+  parentPage: PageContent;
+  siblingBlocks?: Array<{
+    id?: string;
+    content: string;
+    level: number;
+    properties: Record<string, string>;
+    tags: string[];
+    references: string[];
+    blockRefs: string[];
+  }>;
+}
+
+export function getBlockById(blockId: string): BlockWithPage | null {
+  const index = getIndex();
+  
+  // Look up block in index
+  const blockInfo = index.blockIds.get(blockId);
+  if (!blockInfo) {
+    return null;
+  }
+  
+  // Get the parent page
+  const page = index.pages.get(blockInfo.pageName);
+  if (!page) {
+    return null;
+  }
+  
+  // Get the block itself
+  const block = page.blocks[blockInfo.blockIndex];
+  if (!block) {
+    return null;
+  }
+  
+  // Get sibling blocks (same level or parent level for context)
+  const siblingBlocks: Array<{
+    id?: string;
+    content: string;
+    level: number;
+    properties: Record<string, string>;
+    tags: string[];
+    references: string[];
+    blockRefs: string[];
+  }> = [];
+  
+  // Include blocks before and after (up to 2 each) for context
+  const startIndex = Math.max(0, blockInfo.blockIndex - 2);
+  const endIndex = Math.min(page.blocks.length, blockInfo.blockIndex + 3);
+  
+  for (let i = startIndex; i < endIndex; i++) {
+    if (i !== blockInfo.blockIndex) {
+      siblingBlocks.push(page.blocks[i]);
+    }
+  }
+  
+  return {
+    block,
+    pageName: blockInfo.pageName,
+    blockIndex: blockInfo.blockIndex,
+    parentPage: {
+      pageName: page.name,
+      path: page.path,
+      frontmatter: page.frontmatter,
+      blocks: page.blocks,
+      allTags: page.allTags,
+      allProperties: page.allProperties,
+    },
+    siblingBlocks: siblingBlocks.length > 0 ? siblingBlocks : undefined,
+  };
+}
+

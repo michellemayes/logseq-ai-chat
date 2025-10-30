@@ -118,6 +118,30 @@
   text-transform: uppercase;
 }
 
+.citations-header-clickable {
+  cursor: pointer;
+  user-select: none;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: opacity 0.2s;
+}
+
+.citations-header-clickable:hover {
+  opacity: 0.8;
+}
+
+.citations-toggle {
+  font-size: 10px;
+  display: inline-block;
+  width: 12px;
+  text-align: center;
+}
+
+.citations-content {
+  margin-top: 8px;
+}
+
 .citation-card {
   margin-bottom: 8px;
   padding: 8px;
@@ -232,3 +256,15 @@
 
 .warning-bubble .warning-tooltip.visible { opacity: 1; }
 
+/* Block references */
+.block-reference {
+  color: var(--accent);
+  cursor: pointer;
+  text-decoration: underline;
+  transition: opacity 0.2s;
+  font-weight: 500;
+}
+
+.block-reference:hover {
+  opacity: 0.8;
+}

@@ -3,7 +3,7 @@ import { getSettings, setSettings, getContextSettings } from '../store/settings'
 import { Settings } from '../types';
 import { scanLogseqDirectory, readMarkdownFile, writeMarkdownFile, parseMarkdown } from '../filesystem/scanner';
 import { watchLogseqDirectory } from '../filesystem/watcher';
-import { searchGraph, getPage, getJournal, getConnectedPages, traverseGraph, findRelatedPages, findOrphanedPages } from '../graph/search';
+import { searchGraph, getPage, getJournal, getConnectedPages, traverseGraph, findRelatedPages, findOrphanedPages, getBlockById } from '../graph/search';
 import { buildIndex, getIndex } from '../graph/index';
 import { chatWithLLM, createProvider } from '../llm/provider';
 import {
@@ -265,6 +265,16 @@ export function setupIpcHandlers() {
     }
     
     return result;
+  });
+
+  ipcMain.handle('get-block-by-id', async (_event, blockId: string) => {
+    console.log('[ipc/handlers] get-block-by-id called for:', blockId);
+    return getBlockById(blockId);
+  });
+
+  ipcMain.handle('get-block-with-context', async (_event, blockId: string) => {
+    console.log('[ipc/handlers] get-block-with-context called for:', blockId);
+    return getBlockById(blockId);
   });
 
   // Graph traversal queries

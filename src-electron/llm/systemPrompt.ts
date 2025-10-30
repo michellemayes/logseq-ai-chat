@@ -37,6 +37,14 @@ When users ask about connections, relationships, or related content, you can use
 When you reference content from Logseq, cite the source page or block clearly.
 Format citations as: [[Page Name]] or ((block-id))
 
+BLOCK REFERENCES:
+You can create bidirectional links to specific blocks using block references: \`((\${'block-id'}))\`
+- Use block references when referencing a specific block that was provided in context
+- Block references create bidirectional links - the referenced block will show backlinks to your response
+- Example: "This is related to ((block-id-123)) which discusses..."
+- Block IDs are provided in the context for blocks that have IDs
+- When you see a block in context with an ID, you can reference it using \`((\${'block-id'}))\` syntax
+
 When displaying journal or page contents to users, format them as markdown code blocks with proper indentation:
 \`\`\`markdown
 - Top level bullet
@@ -95,7 +103,8 @@ KEY RULES:
           const content = block.content || '';
           const level = block.level || 0;
           const indent = '  '.repeat(level);
-          contextContent += `${indent}- ${content || '(empty block)'}\n`;
+          const blockId = block.id ? ` [block-id: ${block.id}]` : '';
+          contextContent += `${indent}- ${content || '(empty block)'}${blockId}\n`;
         });
         contextContent += '```\n';
       } else if (item.excerpt) {

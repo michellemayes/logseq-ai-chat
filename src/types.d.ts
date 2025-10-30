@@ -50,6 +50,8 @@ export interface ElectronAPI {
   search: (query: string) => Promise<SearchResult[]>;
   getPage: (pageName: string) => Promise<PageContent | null>;
   getJournal: (dateStr: string) => Promise<PageContent | null>;
+  getBlockById: (blockId: string) => Promise<BlockWithPage | null>;
+  getBlockWithContext: (blockId: string) => Promise<BlockWithPage | null>;
   rebuildIndex: () => Promise<{ files: number; journalFiles: number }>;
   getIndexStats: () => Promise<{ pages: number; journals: number }>;
   // Graph traversal
@@ -140,6 +142,30 @@ export interface OrphanedPage {
   pageName: string;
   path: string;
   hasTags: boolean;
+}
+
+export interface BlockWithPage {
+  block: {
+    id?: string;
+    content: string;
+    level: number;
+    properties: Record<string, string>;
+    tags: string[];
+    references: string[];
+    blockRefs: string[];
+  };
+  pageName: string;
+  blockIndex: number;
+  parentPage: PageContent;
+  siblingBlocks?: Array<{
+    id?: string;
+    content: string;
+    level: number;
+    properties: Record<string, string>;
+    tags: string[];
+    references: string[];
+    blockRefs: string[];
+  }>;
 }
 
 declare global {
