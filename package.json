@@ -24,6 +24,20 @@
   ],
   "author": "",
   "license": "MIT",
+  "build": {
+    "appId": "com.logseq.ai.chat",
+    "productName": "Logseq AI Chat",
+    "files": [
+      "dist/**",
+      "dist-react/**",
+      "package.json"
+    ],
+    "asar": true,
+    "mac": {
+      "category": "public.app-category.productivity",
+       "icon": "build/icon.icns"
+    }
+  },
   "devDependencies": {
     "@types/node": "^20.10.0",
     "@types/react": "^18.2.45",
