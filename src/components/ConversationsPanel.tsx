@@ -115,9 +115,6 @@ export default function ConversationsPanel({ isOpen, onClose, onSelectConversati
       <div className={`conversations-panel ${isOpen ? 'open' : ''}`}>
         <div className="conversations-panel-header">
           <h2>Conversations</h2>
-          <button className="close-button" onClick={onClose}>
-            ×
-          </button>
         </div>
         <div className="conversations-panel-content">
           <div className="conversation-search">
