@@ -19,6 +19,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  min-width: 0; /* Allow flex item to shrink below content size */
+  max-width: 400px; /* Limit maximum width */
   -webkit-app-region: no-drag; /* Allow clicking/editing */
   app-region: no-drag; /* Standard property */
 }
@@ -32,6 +34,7 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  max-width: 100%; /* Ensure it respects container max-width */
 }
 
 .header-title-input {

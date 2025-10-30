@@ -504,51 +504,15 @@ export default function ChatInterface({ onOpenSidebar, onOpenConversations, conv
 
           if (action.type === 'create_journal' && action.date) {
             console.log('[ChatInterface] Executing create_journal for date:', action.date, 'content length:', action.content?.length || 0);
-            const filePath = await window.electronAPI.createJournalEntry(action.date, action.content);
-            // Update message with success indicator
-            setMessages((prev) => {
-              const updated = [...prev];
-              const lastMsg = updated[updated.length - 1];
-              if (lastMsg && lastMsg.role === 'assistant') {
-                const marker = '✅ Journal entry saved to:';
-                if (!lastMsg.content.includes(marker)) {
-                  lastMsg.content += `\n\n${marker} ${filePath.split('/').pop()}`;
-                }
-              }
-              return updated;
-            });
+            await window.electronAPI.createJournalEntry(action.date, action.content);
             lastActionKeyRef.current = actionKey;
           } else if (action.type === 'create_page' && action.pageName) {
             console.log('[ChatInterface] Executing create_page for:', action.pageName, 'content length:', action.content?.length || 0);
-            const filePath = await window.electronAPI.createPage(action.pageName, action.content);
-            setMessages((prev) => {
-              const updated = [...prev];
-              const lastMsg = updated[updated.length - 1];
-              if (lastMsg && lastMsg.role === 'assistant') {
-                const marker = '✅ Page saved to:';
-                if (!lastMsg.content.includes(marker)) {
-                  lastMsg.content += `\n\n${marker} ${filePath.split('/').pop()}`;
-                }
-              }
-              return updated;
-            });
+            await window.electronAPI.createPage(action.pageName, action.content);
             lastActionKeyRef.current = actionKey;
           } else if (action.type === 'append_to_page' && action.pageName) {
             console.log('[ChatInterface] Executing append_to_page for:', action.pageName, 'content length:', action.content?.length || 0);
-            const filePath = await window.electronAPI.appendToPage(action.pageName, action.content);
-            setMessages((prev) => {
-              const updated = [...prev];
-              const lastMsg = updated[updated.length - 1];
-              if (lastMsg && lastMsg.role === 'assistant') {
-                const fileName = filePath.split('/').pop();
-                const location = action.pageName?.includes('journals') ? 'journal' : 'page';
-                const marker = `✅ Updated ${location}: ${fileName}`;
-                if (!lastMsg.content.includes(marker)) {
-                  lastMsg.content += `\n\n${marker}`;
-                }
-              }
-              return updated;
-            });
+            await window.electronAPI.appendToPage(action.pageName, action.content);
             lastActionKeyRef.current = actionKey;
           }
         } catch (error) {
@@ -579,6 +543,11 @@ export default function ChatInterface({ onOpenSidebar, onOpenConversations, conv
       setIsStreaming(true);
       setStreamingContent('');
 
+      // Helper function to strip LOGSEQ_ACTION tags from content
+      const stripActionTags = (content: string): string => {
+        return content.replace(/<LOGSEQ_ACTION>[\s\S]*?<\/LOGSEQ_ACTION>/g, '').trim();
+      };
+
       // Use streaming API
       window.electronAPI.chatStream(
         [
@@ -590,12 +559,14 @@ export default function ChatInterface({ onOpenSidebar, onOpenConversations, conv
           onToken: (token: string) => {
             setStreamingContent((prev) => {
               const newContent = prev + token;
-              // Update the last message with streaming content
+              // Strip LOGSEQ_ACTION tags from streaming content
+              const cleanedContent = stripActionTags(newContent);
+              // Update the last message with streaming content (without action tags)
               setMessages((prevMsgs) => {
                 const updated = [...prevMsgs];
                 const lastMsg = updated[updated.length - 1];
                 if (lastMsg && lastMsg.role === 'assistant') {
-                  lastMsg.content = newContent;
+                  lastMsg.content = cleanedContent;
                 }
                 return updated;
               });
@@ -607,10 +578,8 @@ export default function ChatInterface({ onOpenSidebar, onOpenConversations, conv
             setStreamingContent('');
 
             // Parse response for LOGSEQ_ACTION commands (robust parsing)
-            let action: { type?: 'create_journal' | 'create_page' | 'append_to_page'; action?: string; date?: string; pageName?: string; content: string } | undefined;
-            let displayContent = fullContent;
-
-            const tagMatch = fullContent.match(/<LOGSEQ_ACTION>([\s\S]*?)<\/LOGSEQ_ACTION>/);
+            // Find all LOGSEQ_ACTION tags (multiple actions may be present)
+            const tagMatches = Array.from(fullContent.matchAll(/<LOGSEQ_ACTION>([\s\S]*?)<\/LOGSEQ_ACTION>/g));
             const fencedMatch = fullContent.match(/```(?:json|JSON)?[\r\n]+([\s\S]*?)```/);
             const jsonLikeMatch = fullContent.match(/\{[\s\S]*\}/);
 
@@ -623,40 +592,185 @@ export default function ChatInterface({ onOpenSidebar, onOpenConversations, conv
               }
             };
 
-            action = tryParse(tagMatch?.[1]) || tryParse(fencedMatch?.[1]) || tryParse(jsonLikeMatch?.[0]);
-            // Normalize possible 'action' property into 'type'
-            if (action && !action.type && action.action) {
-              action.type = action.action as any;
+            // Parse all LOGSEQ_ACTION tags
+            const actions: Array<{ type?: 'create_journal' | 'create_page' | 'append_to_page'; action?: string; date?: string; pageName?: string; content: string }> = [];
+            
+            for (const match of tagMatches) {
+              const parsed = tryParse(match[1]);
+              if (parsed) {
+                // Normalize possible 'action' property into 'type'
+                if (!parsed.type && parsed.action) {
+                  parsed.type = parsed.action as any;
+                }
+                if (parsed.type) {
+                  actions.push(parsed);
+                }
+              }
             }
-            if (action && tagMatch) {
-              displayContent = fullContent.replace(/<LOGSEQ_ACTION>[\s\S]*?<\/LOGSEQ_ACTION>/, '').trim();
+            
+            // Fallback to fenced code block or JSON-like match if no tags found
+            if (actions.length === 0) {
+              const fallbackAction = tryParse(fencedMatch?.[1]) || tryParse(jsonLikeMatch?.[0]);
+              if (fallbackAction) {
+                if (!fallbackAction.type && fallbackAction.action) {
+                  fallbackAction.type = fallbackAction.action as any;
+                }
+                if (fallbackAction.type) {
+                  actions.push(fallbackAction);
+                }
+              }
             }
+            
+            // Always strip LOGSEQ_ACTION tags from display content
+            const displayContent = stripActionTags(fullContent);
 
             // Don't infer actions - only execute when explicitly included in LOGSEQ_ACTION tag
-            if (!action) {
+            if (actions.length === 0) {
               console.log('[ChatInterface] No LOGSEQ_ACTION found - not executing any file operations.');
             }
 
-            // Update the final message with parsed content and action
+            // Update the final message with parsed content (actions stored separately)
             setMessages((prevMsgs) => {
               const updated = [...prevMsgs];
               const lastMsg = updated[updated.length - 1];
               if (lastMsg && lastMsg.role === 'assistant') {
                 lastMsg.content = displayContent;
-                lastMsg.action = action && action.type ? {
-                  type: action.type,
-                  date: action.date,
-                  pageName: action.pageName,
-                  content: action.content,
+                // Store first action in message for backward compatibility (or remove if not needed)
+                lastMsg.action = actions.length > 0 && actions[0].type ? {
+                  type: actions[0].type,
+                  date: actions[0].date,
+                  pageName: actions[0].pageName,
+                  content: actions[0].content,
                 } : undefined;
               }
               return updated;
             });
 
-            // Auto-execute file operations
-            if (action && settings.logseqPath) {
-              executeAction(action, noContextWarning).catch(err => {
-                console.error('Failed to execute action:', err);
+            // Auto-execute all file operations sequentially
+            if (actions.length > 0 && settings.logseqPath) {
+              (async () => {
+                const executedActions: Array<{ type: string; pageName?: string; date?: string; fileName: string }> = [];
+                
+                for (const action of actions) {
+                  if (!action.type) continue;
+                  
+                  const actionKey = `${action.type}|${action.pageName || ''}|${action.date || ''}|${(action.content || '').trim()}`;
+                  if (lastActionKeyRef.current === actionKey) {
+                    console.log('[ChatInterface] Skipping duplicate action execution:', actionKey);
+                    continue;
+                  }
+
+                  // Policy: if no Logseq context, do not update existing files; only allow creating pages with explicit approval.
+                  if (noContextWarning) {
+                    if (action.type === 'create_page' && action.pageName) {
+                      const ok = window.confirm(`No Logseq context detected. Create new page "${action.pageName}"?`);
+                      if (!ok) {
+                        console.log('[ChatInterface] User declined create_page without context');
+                        continue;
+                      }
+                    } else {
+                      console.log('[ChatInterface] Blocking file update without context. Action:', action.type);
+                      // Check if we've already shown this warning in the last message
+                      setMessages((prev) => {
+                        const lastMsg = prev[prev.length - 1];
+                        const warningText = 'ℹ️ No Logseq context available — not updating existing files. Please reference a page/journal or rebuild the index. You may create a new page instead.';
+                        if (lastMsg && lastMsg.role === 'assistant' && lastMsg.content.includes(warningText)) {
+                          // Already shown, don't add again
+                          return prev;
+                        }
+                        return [
+                          ...prev,
+                          { role: 'assistant', content: warningText }
+                        ];
+                      });
+                      continue;
+                    }
+                  }
+
+                  try {
+                    // Execute action and get file path
+                    let filePath: string | null = null;
+                    if (action.type === 'create_journal' && action.date) {
+                      console.log('[ChatInterface] Executing create_journal for date:', action.date, 'content length:', action.content?.length || 0);
+                      filePath = await window.electronAPI.createJournalEntry(action.date, action.content);
+                      const fileName = filePath.split('/').pop() || '';
+                      executedActions.push({ type: 'create_journal', date: action.date, fileName });
+                      lastActionKeyRef.current = actionKey;
+                    } else if (action.type === 'create_page' && action.pageName) {
+                      console.log('[ChatInterface] Executing create_page for:', action.pageName, 'content length:', action.content?.length || 0);
+                      filePath = await window.electronAPI.createPage(action.pageName, action.content);
+                      const fileName = filePath.split('/').pop() || '';
+                      executedActions.push({ type: 'create_page', pageName: action.pageName, fileName });
+                      lastActionKeyRef.current = actionKey;
+                    } else if (action.type === 'append_to_page' && action.pageName) {
+                      console.log('[ChatInterface] Executing append_to_page for:', action.pageName, 'content length:', action.content?.length || 0);
+                      filePath = await window.electronAPI.appendToPage(action.pageName, action.content);
+                      const fileName = filePath.split('/').pop() || '';
+                      executedActions.push({ type: 'append_to_page', pageName: action.pageName, fileName });
+                      lastActionKeyRef.current = actionKey;
+                    }
+                  } catch (err) {
+                    console.error('Failed to execute action:', err);
+                    // Add error message
+                    setMessages((prev) => [
+                      ...prev,
+                      {
+                        role: 'assistant',
+                        content: `❌ Error: ${err instanceof Error ? err.message : 'Unknown error'}`,
+                      },
+                    ]);
+                  }
+                }
+                
+                // Update message with summary of all executed actions
+                if (executedActions.length > 0) {
+                  setMessages((prevMsgs) => {
+                    const updated = [...prevMsgs];
+                    const lastMsg = updated[updated.length - 1];
+                    if (lastMsg && lastMsg.role === 'assistant') {
+                      // Remove any existing success markers
+                      const contentWithoutMarkers = lastMsg.content
+                        .replace(/\n\n✅ [^\n]+/g, '')
+                        .replace(/✅ [^\n]+\n/g, '');
+                      
+                      // Build summary
+                      const summaries: string[] = [];
+                      const pagesCreated = executedActions.filter(a => a.type === 'create_page');
+                      const journalsCreated = executedActions.filter(a => a.type === 'create_journal');
+                      const pagesUpdated = executedActions.filter(a => a.type === 'append_to_page');
+                      
+                      if (pagesCreated.length > 0) {
+                        if (pagesCreated.length === 1) {
+                          summaries.push(`✅ Page saved to: ${pagesCreated[0].fileName}`);
+                        } else {
+                          summaries.push(`✅ Created ${pagesCreated.length} pages: ${pagesCreated.map(a => a.fileName).join(', ')}`);
+                        }
+                      }
+                      
+                      if (journalsCreated.length > 0) {
+                        if (journalsCreated.length === 1) {
+                          summaries.push(`✅ Journal entry saved to: ${journalsCreated[0].fileName}`);
+                        } else {
+                          summaries.push(`✅ Created ${journalsCreated.length} journal entries: ${journalsCreated.map(a => a.fileName).join(', ')}`);
+                        }
+                      }
+                      
+                      if (pagesUpdated.length > 0) {
+                        if (pagesUpdated.length === 1) {
+                          const location = pagesUpdated[0].pageName?.includes('journals') ? 'journal' : 'page';
+                          summaries.push(`✅ Updated ${location}: ${pagesUpdated[0].fileName}`);
+                        } else {
+                          summaries.push(`✅ Updated ${pagesUpdated.length} pages: ${pagesUpdated.map(a => a.fileName).join(', ')}`);
+                        }
+                      }
+                      
+                      lastMsg.content = contentWithoutMarkers + (summaries.length > 0 ? '\n\n' + summaries.join('\n') : '');
+                    }
+                    return updated;
+                  });
+                }
+              })().catch(err => {
+                console.error('Error executing actions:', err);
               });
             }
             

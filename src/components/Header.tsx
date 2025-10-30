@@ -90,9 +90,13 @@ export default function Header({
             className="header-title"
             onClick={activeConversationId ? handleStartEdit : undefined}
             style={{ cursor: activeConversationId ? 'pointer' : 'default' }}
-            title={activeConversationId ? 'Click to edit' : undefined}
+            title={activeConversationTitle || undefined}
           >
-            {activeConversationTitle || 'Logseq AI Chat'}
+            {activeConversationTitle 
+              ? (activeConversationTitle.length > 40 
+                  ? `${activeConversationTitle.substring(0, 40)}...` 
+                  : activeConversationTitle)
+              : 'Logseq AI Chat'}
           </h1>
         )}
       </div>
